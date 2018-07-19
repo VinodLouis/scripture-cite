@@ -1,6 +1,7 @@
 language: node_js
 node_js:
-  - "10"
+  - "iojs"
+  - "8"
 scripts:
   - npm install codecov -g
   - npm run lint
