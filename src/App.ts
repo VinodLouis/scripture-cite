@@ -2,7 +2,8 @@ import * as path from 'path';
 import * as express from 'express';
 import * as logger from 'morgan';
 import * as bodyParser from 'body-parser';
-
+import BibleROutes from './scriptures/bible/bibleRoutes';
+//mport App from './scriptures/bible/bibleRoute';
 // Creates and configures an ExpressJS web server.
 class App {
 
@@ -36,6 +37,7 @@ class App {
       });
     });
     this.express.use('/', router);
+    this.express.use('/bible', BibleROutes().routeMatching);
   }
 
 }

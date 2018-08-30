@@ -1,4 +1,3 @@
-
 import * as winston from 'winston';
 
 class Logger {
