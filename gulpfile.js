@@ -2,6 +2,7 @@ const gulp = require('gulp');
 const ts = require('gulp-typescript');
 const JSON_FILES = ['src/*.json', 'src/**/*.json'];
 const tslint = require('gulp-tslint');
+var exec = require('child_process').exec;
 
 // pull in the project TypeScript config
 const tsProject = ts.createProject('tsconfig.json');
@@ -27,4 +28,11 @@ gulp.task('assets', function() {
   .pipe(gulp.dest('dist'));
 });
 
-gulp.task('dev', ['watch', 'assets']);
+gulp.task('start', function () {
+    exec('node dist/index.js', function (err, stdout, stderr) {
+        console.log(stdout);
+        console.log(stderr);
+    });
+});
+
+gulp.task('dev', ['scripts', 'assets', 'start', 'watch']);

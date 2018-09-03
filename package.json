@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "gulp scripts",
-    "start": "node dist/index.js",
+    "dev": "gulp dev",
+    "start": "gulp start",
     "test": "nyc mocha --reporter spec --compilers ts:ts-node/register 'test/**/*.test.ts'",
     "lint": "tslint  -c tslint.json src/**/*.ts",
     "posttest": "nyc report --reporter=json && codecov -f coverage/*.json",
