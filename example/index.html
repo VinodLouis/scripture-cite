@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>scripture-cite — Example</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5efe3;
+        --panel: rgba(255, 251, 244, 0.88);
+        --text: #20160b;
+        --muted: #6c5b46;
+        --line: rgba(97, 73, 33, 0.16);
+        --accent: #8b6914;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(139, 105, 20, 0.14),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at right 20%,
+            rgba(62, 38, 12, 0.08),
+            transparent 24%
+          ),
+          linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: Georgia, 'Times New Roman', serif;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 3rem 1.25rem 4rem;
+      }
+
+      .hero {
+        padding: 1.4rem 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 20px 50px rgba(41, 29, 11, 0.08);
+      }
+
+      .eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--accent);
+        font-family: system-ui, sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 5vw, 4rem);
+        line-height: 1.02;
+      }
+
+      .lede {
+        max-width: 62ch;
+        margin: 0.9rem 0 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .card {
+        padding: 1.25rem 1.4rem 1.4rem;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 12px 30px rgba(41, 29, 11, 0.06);
+      }
+
+      .card h2 {
+        margin: 0 0 0.85rem;
+        font-size: 1.15rem;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem 1rem;
+        align-items: center;
+      }
+
+      .stack {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .note {
+        margin: 0;
+        color: var(--muted);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        font-size: 0.95rem;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      pre {
+        overflow: auto;
+        margin: 0;
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(97, 73, 33, 0.18);
+        background: #1f1408;
+        color: #f7ead0;
+        white-space: pre-wrap;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .sample-style-royal {
+        --sc-accent: #3f2e89;
+        --sc-tooltip-bg: #16132a;
+        --sc-tooltip-color: #ece7ff;
+        --sc-inline-bg: #eee9ff;
+        --sc-inline-color: #2c1d66;
+      }
+
+      .sample-style-sage {
+        --sc-accent: #2b6b4f;
+        --sc-tooltip-bg: #11261d;
+        --sc-tooltip-color: #dbf5e8;
+        --sc-inline-bg: #eaf8f1;
+        --sc-inline-color: #1f4d38;
+        --sc-radius: 14px;
+      }
+
+      .sample-style-sand {
+        --sc-accent: #9a4d1f;
+        --sc-tooltip-bg: #2b1508;
+        --sc-tooltip-color: #ffe8d8;
+        --sc-inline-bg: #fff0e6;
+        --sc-inline-color: #5a2b11;
+        --sc-tooltip-max-width: 520px;
+      }
+
+      scripture-cite {
+        margin-right: 0.5rem;
+      }
+
+      .footer {
+        margin-top: 1.25rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding-inline: 0.9rem;
+        }
+
+        .hero,
+        .card {
+          padding-inline: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">scripture-cite example</p>
+        <h1>Real markup, tooltip mode, inline mode, and zen mode.</h1>
+        <p class="lede">
+          Build the library, serve this folder, and the samples below render as
+          literal <code>&lt;scripture-cite&gt;</code> elements rather than being
+          assembled entirely in JavaScript.
+        </p>
+      </section>
+
+      <div id="demo" class="grid"></div>
+
+      <template id="demo-template">
+        <section class="card stack">
+          <h2>Tooltip example</h2>
+          <p class="note">
+            Hover or focus the citation. The tag is written directly in the
+            HTML.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="john"
+              chapter="3"
+              verse="16"
+              placement="north"
+              >John 3:16 — hover or focus</scripture-cite
+            >
+          </div>
+        </section>
+
+        <section class="card stack">
+          <h2>Inline example</h2>
+          <p class="note">
+            Inline mode stays visible in the flow of text, and can now show a
+            collapsible Zen explanation below the verse.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="gita"
+              chapter="2"
+              verse="47"
+              mode="inline"
+            ></scripture-cite>
+            <scripture-cite
+              source="bible"
+              book="genesis"
+              chapter="1"
+              verse="1"
+              mode="inline"
+              zen
+            ></scripture-cite>
+          </div>
+        </section>
+
+        <section class="card stack">
+          <h2>Placement examples</h2>
+          <p class="note">
+            North, east, west, and bottom placements are all shown here.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="psalms"
+              chapter="23"
+              verse="1"
+              placement="east"
+              >Psalms 23:1 — open right</scripture-cite
+            >
+            <scripture-cite
+              source="quran"
+              chapter="1"
+              verse="1"
+              placement="west"
+              >Quran 1:1 — open left</scripture-cite
+            >
+            <scripture-cite
+              source="bible"
+              book="psalms"
+              chapter="46"
+              verse="1"
+              placement="bottom"
+              >Psalms 46:1 — open bottom</scripture-cite
+            >
+          </div>
+        </section>
+
+        <section class="card stack">
+          <h2>Zen mode</h2>
+          <p class="note">
+            Enable zen in the config to reveal the extra explanation button in
+            tooltip mode. Hover the button first to prewarm the model and make
+            the first click feel faster.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="genesis"
+              chapter="1"
+              verse="1"
+              zen
+              >Genesis 1:1 — zen mode</scripture-cite
+            >
+            <scripture-cite source="quran" chapter="1" verse="1" zen
+              >Quran 1:1 — zen mode</scripture-cite
+            >
+            <scripture-cite source="gita" chapter="18" verse="66" zen
+              >Bhagavad Gita 18:66 — zen mode</scripture-cite
+            >
+          </div>
+        </section>
+
+        <section class="card stack">
+          <h2>Attribute configuration samples</h2>
+          <p class="note">
+            These examples use element-level options to control reference
+            labels, loading strategy, and per-element mode.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="john"
+              chapter="3"
+              verse="16"
+              no-ref
+              >John 3:16 — no-ref</scripture-cite
+            >
+            <scripture-cite source="quran" chapter="1" verse="1" loading="eager"
+              >Quran 1:1 — eager</scripture-cite
+            >
+            <scripture-cite source="gita" chapter="2" verse="47" loading="lazy"
+              >Gita 2:47 — lazy</scripture-cite
+            >
+            <scripture-cite
+              source="bible"
+              book="psalms"
+              chapter="23"
+              verse="1"
+              mode="inline"
+              no-ref
+            ></scripture-cite>
+          </div>
+          <pre><code>&lt;scripture-cite source="bible" book="john" chapter="3" verse="16" no-ref&gt;
+  John 3:16 — no-ref
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="quran" chapter="1" verse="1" loading="eager"&gt;
+  Quran 1:1 — eager
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="gita" chapter="2" verse="47" loading="lazy"&gt;
+  Gita 2:47 — lazy
+&lt;/scripture-cite&gt;</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Style customization samples</h2>
+          <p class="note">
+            You can theme each element using CSS variables, either inline or by
+            applying a class.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="john"
+              chapter="3"
+              verse="16"
+              class="sample-style-royal"
+              >Royal palette</scripture-cite
+            >
+            <scripture-cite
+              source="quran"
+              chapter="1"
+              verse="1"
+              class="sample-style-sage"
+              >Sage palette</scripture-cite
+            >
+            <scripture-cite
+              source="gita"
+              chapter="2"
+              verse="47"
+              class="sample-style-sand"
+              >Sand palette</scripture-cite
+            >
+          </div>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="psalms"
+              chapter="23"
+              verse="1"
+              style="
+                --sc-accent: #005f73;
+                --sc-inline-bg: #e0fbfc;
+                --sc-inline-color: #003845;
+              "
+              mode="inline"
+            ></scripture-cite>
+          </div>
+          <pre><code>.sample-style-royal {
+  --sc-accent: #3f2e89;
+  --sc-tooltip-bg: #16132a;
+  --sc-tooltip-color: #ece7ff;
+}
+
+&lt;scripture-cite
+  source="bible"
+  book="john"
+  chapter="3"
+  verse="16"
+  class="sample-style-royal"
+&gt;Royal palette&lt;/scripture-cite&gt;
+
+&lt;scripture-cite
+  source="bible"
+  book="psalms"
+  chapter="23"
+  verse="1"
+  mode="inline"
+  style="--sc-accent:#005f73; --sc-inline-bg:#e0fbfc; --sc-inline-color:#003845"
+&gt;&lt;/scripture-cite&gt;</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Global configuration samples</h2>
+          <p class="note">
+            Copy one of these presets into your app entry point and tune it for
+            your use case.
+          </p>
+          <pre><code>ScriptureConfigure({
+  loadDefaults: ['bible', 'quran'],
+  defaultMode: 'tooltip',
+  theme: {
+    accentColor: '#8b6914',
+    tooltipBg: '#1a1208',
+    tooltipColor: '#f5e6c8',
+    tooltipMaxWidth: '460px',
+  },
+  zen: {
+    enabled: true,
+    model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+  },
+});
+
+ScriptureConfigure({
+  dataUrl: '/verses',
+  defaultMode: 'inline',
+  zen: { enabled: false },
+});</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Zen prompt override example</h2>
+          <p class="note">
+            The Zen prompt can be overridden per app. Use this when you want a
+            stricter format such as context, interpretation, cross-reference,
+            and relevance today.
+          </p>
+          <pre><code>ScriptureConfigure({
+  zen: {
+    enabled: true,
+    systemPrompt:
+      'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
+  },
+});</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Zen override test verses</h2>
+          <p class="note">
+            Test the same override prompt with these two verses:
+            <strong>John 3:16</strong> and <strong>Gita 10:20</strong>.
+          </p>
+          <div class="row">
+            <scripture-cite
+              source="bible"
+              book="john"
+              chapter="3"
+              verse="16"
+              zen
+              >John 3:16 — zen test</scripture-cite
+            >
+            <scripture-cite source="gita" chapter="10" verse="20" zen
+              >Gita 10:20 — zen test</scripture-cite
+            >
+          </div>
+          <pre><code>ScriptureConfigure({
+  zen: {
+    enabled: true,
+    systemPrompt:
+      'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
+  },
+});</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Programmatic lookup</h2>
+          <p class="note">
+            The sample still logs a resolved verse to the console.
+          </p>
+          <pre><code>const verse = await ScriptureRegistry.resolve('bible', '1', '1', 'genesis');
+console.log('Genesis 1:1:', verse.text);</code></pre>
+        </section>
+      </template>
+    </main>
+
+    <script type="module">
+      import('../dist/scripture-cite.js')
+        .then(
+          async ({ ScriptureConfigure, ScriptureRegistry, ScriptureReady }) => {
+            ScriptureConfigure({
+              loadDefaults: true,
+              zen: {
+                enabled: true,
+                systemPrompt:
+                  'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
+              },
+            });
+
+            try {
+              await ScriptureRegistry.registerDefaults();
+
+              const demo = document.getElementById('demo');
+              const template = document.getElementById('demo-template');
+              if (demo && template instanceof HTMLTemplateElement) {
+                demo.appendChild(template.content.cloneNode(true));
+              }
+
+              await ScriptureReady();
+            } catch (err) {
+              console.error(
+                'Failed to initialise scripture-cite defaults:',
+                err,
+              );
+            }
+          },
+        )
+        .catch((err) => console.error('Failed to import bundle:', err));
+    </script>
+  </body>
+</html>

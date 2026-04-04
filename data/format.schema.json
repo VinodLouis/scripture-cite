@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "scripture-cite/data-format",
+  "title": "ScriptureData",
+  "description": "Scripture data file format for scripture-cite library",
+  "type": "object",
+  "required": ["meta", "verses"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["source", "version", "lang"],
+      "properties": {
+        "source":      { "type": "string", "enum": ["bible", "quran", "gita"], "description": "Scripture source identifier" },
+        "version":     { "type": "string", "description": "Translation/version name, e.g. 'KJV', 'Sahih International'" },
+        "lang":        { "type": "string", "description": "BCP-47 language tag, e.g. 'en', 'ar'" },
+        "direction":   { "type": "string", "enum": ["ltr", "rtl"], "default": "ltr" },
+        "attribution": { "type": "string", "description": "Copyright / attribution notice" }
+      }
+    },
+    "verses": {
+      "description": "Bible: { book: { chapter: { verse: text } } } | Quran/Gita: { chapter: { verse: text } }",
+      "oneOf": [
+        {
+          "title": "WithBook (Bible)",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        },
+        {
+          "title": "WithoutBook (Quran / Gita)",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}
