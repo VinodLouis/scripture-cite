@@ -33,15 +33,6 @@
 npm install scripture-cite
 ```
 
-### Via CDN (no build step)
-
-```html
-<script
-  type="module"
-  src="https://unpkg.com/scripture-cite/dist/scripture-cite.js"
-></script>
-```
-
 ### Usage
 
 ```html
