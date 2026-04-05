@@ -29,9 +29,35 @@ const SC_THEME_VARS = [
 
 const PORTAL_STYLES = /* css */ `
 /* Portal styles (only tooltip-related rules) - high-specificity and important overrides */
-.sc-tooltip-wrap { position: fixed !important; z-index: 2147483647 !important; width: max-content !important; max-width: var(--sc-tooltip-max-width,420px) !important; pointer-events: none !important; opacity: 0 !important; visibility: hidden !important; transition: opacity var(--sc-anim,200ms) ease, transform var(--sc-anim,200ms) ease !important; transform: translateX(-50%) translateY(6px) !important; }
+.sc-tooltip-wrap {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  width: max-content !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity var(--sc-anim,200ms) ease, transform var(--sc-anim,200ms) ease !important;
+  transform: translateX(-50%) translateY(6px) !important;
+}
 .sc-tooltip-wrap.open { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; transform: translateX(-50%) translateY(0) !important; }
-.sc-tooltip { background: var(--sc-tooltip-bg, #1a1208) !important; color: var(--sc-tooltip-color, #f5e6c8) !important; border-radius: var(--sc-radius,8px) !important; padding: 14px 16px !important; box-shadow: var(--sc-shadow, 0 8px 32px rgba(0,0,0,0.35)) !important; font-family: var(--sc-verse-font, Georgia, serif) !important; font-size: 0.9em !important; line-height: 1.65 !important; font-style: italic !important; display: block !important; white-space: normal !important; }
+.sc-tooltip {
+  display: block !important;
+  max-width: var(--sc-tooltip-max-width, 420px) !important;
+  box-sizing: border-box !important;
+  background: var(--sc-tooltip-bg, #1a1208) !important;
+  color: var(--sc-tooltip-color, #f5e6c8) !important;
+  border-radius: var(--sc-radius,8px) !important;
+  padding: 14px 16px !important;
+  box-shadow: var(--sc-shadow, 0 8px 32px rgba(0,0,0,0.35)) !important;
+  font-family: var(--sc-verse-font, Georgia, serif) !important;
+  font-size: 0.9em !important;
+  line-height: 1.65 !important;
+  font-style: italic !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
 .sc-tooltip-ref { display:block !important; font-family: var(--sc-ref-font, system-ui, sans-serif) !important; font-style: normal !important; font-size: 0.76em !important; color: var(--sc-accent,#8b6914) !important; font-weight:600 !important; margin-top:8px !important; letter-spacing:0.04em !important; text-transform:uppercase !important; }
 /* Arrow: inline SVG triangle to ensure crisp rendering */
 .sc-arrow {
@@ -147,7 +173,6 @@ const STYLES = /* css */ `
     left: 0;
     top: 0;
     width: max-content;
-    max-width: var(--sc-tooltip-max-width, 420px);
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
@@ -170,6 +195,9 @@ const STYLES = /* css */ `
   }
 
   .sc-tooltip {
+    display: block;
+    max-width: var(--sc-tooltip-max-width, 420px);
+    box-sizing: border-box;
     background: var(--sc-tooltip-bg, #1a1208);
     color: var(--sc-tooltip-color, #f5e6c8);
     border-radius: var(--sc-radius, 8px);
@@ -179,6 +207,9 @@ const STYLES = /* css */ `
     font-size: 0.9em;
     line-height: 1.65;
     font-style: italic;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   /* Arrow element (inline SVG triangle) */
   .sc-arrow {

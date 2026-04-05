@@ -22,14 +22,9 @@ const DEFAULT_ZEN: Required<ZenConfig> = {
   enabled: false,
   model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
   systemPrompt:
-    'You are a careful, context-aware scripture explainer. For any provided verse you must: ' +
-    '1) Give one short contextual note (1 sentence) explaining where this verse sits in the immediate chapter or section. ' +
-    '2) Provide a concise interpretation of the verse (2-3 sentences) focused on meaning, not praise or repeated epithets. ' +
-    '3) Give one concrete, modern-day practical implication (1 sentence) that follows directly from the interpretation. ' +
-    '4) Provide at most one short cross-reference (book chapter:verse) and explain in one sentence why it connects. ' +
-    '5) If there is genuine textual uncertainty or multiple plausible readings, state it briefly. ' +
-    'Use neutral, explanatory language (avoid devotional language or long lists of titles). Keep the full output to no more than 6 short sentences. ' +
-    'Do not simply paraphrase the verse; focus on interpretation, context, cross-reference, and relevance.',
+    'You are a careful, concise scripture explainer. ' +
+    'Explain only the provided verse in 4-6 clear sentences using neutral, explanatory language. ' +
+    'Stay grounded in the verse text, avoid generic boilerplate, and do not use headings or bullet points.',
   webLLMCdn: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@latest',
   onProgress: () => {},
 };
@@ -50,6 +45,12 @@ class ScriptureConfigManager {
       zen: { ...DEFAULT_ZEN, ...this._config.zen, ...config.zen },
     };
     this._applyThemeToDocument();
+
+    if (config.zen) {
+      void import('./zen/zen-mode.js')
+        .then((mod) => mod.clearZenCache())
+        .catch(() => {});
+    }
 
     // If the consumer opted into loading bundled sample JSONs, do so now.
     // Use a dynamic import to avoid a circular static import between

@@ -3,543 +3,529 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>scripture-cite — Example</title>
+    <title>scripture-cite — Sandbox</title>
     <style>
-      :root {
-        color-scheme: light;
-        --bg: #f5efe3;
-        --panel: rgba(255, 251, 244, 0.88);
-        --text: #20160b;
-        --muted: #6c5b46;
-        --line: rgba(97, 73, 33, 0.16);
-        --accent: #8b6914;
+      html,
+      body {
+        height: 100%;
+        margin: 0;
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html {
+      body {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
         background:
           radial-gradient(
             circle at top left,
-            rgba(139, 105, 20, 0.14),
-            transparent 30%
+            rgba(139, 105, 20, 0.12),
+            transparent 28%
           ),
           radial-gradient(
-            circle at right 20%,
-            rgba(62, 38, 12, 0.08),
+            circle at 85% 15%,
+            rgba(63, 46, 137, 0.08),
             transparent 24%
           ),
-          linear-gradient(180deg, #fbf7ef 0%, var(--bg) 100%);
+          linear-gradient(180deg, #f8f3ea 0%, #efe6d7 100%);
+        color: #1f160c;
+        overflow: hidden;
       }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        color: var(--text);
-        font-family: Georgia, 'Times New Roman', serif;
-        line-height: 1.55;
-      }
-
-      main {
-        max-width: 980px;
-        margin: 0 auto;
-        padding: 3rem 1.25rem 4rem;
-      }
-
-      .hero {
-        padding: 1.4rem 1.5rem;
-        border: 1px solid var(--line);
+      .panel {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(16px);
         border-radius: 20px;
-        background: var(--panel);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 20px 50px rgba(41, 29, 11, 0.08);
+        padding: 24px;
+        box-shadow: 0 18px 46px rgba(37, 26, 12, 0.1);
+        width: min(420px, 100%);
+        border: 1px solid rgba(97, 73, 33, 0.12);
+        height: 100%;
+        overflow: auto;
       }
-
-      .eyebrow {
-        margin: 0 0 0.35rem;
-        color: var(--accent);
-        font-family: system-ui, sans-serif;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
+      .demo {
+        flex: 1;
+        min-width: 320px;
+        height: calc(100vh - 56px);
+        position: sticky;
+        top: 28px;
+        align-self: flex-start;
+        overflow: auto;
       }
-
-      h1 {
-        margin: 0;
-        font-size: clamp(2.2rem, 5vw, 4rem);
-        line-height: 1.02;
+      h2,
+      h3 {
+        margin: 0 0 12px;
       }
-
-      .lede {
-        max-width: 62ch;
-        margin: 0.9rem 0 0;
-        color: var(--muted);
-        font-size: 1.05rem;
-        font-family:
-          system-ui,
-          -apple-system,
-          'Segoe UI',
-          sans-serif;
+      label {
+        display: block;
+        font-size: 0.88rem;
+        margin-bottom: 6px;
+        color: #4b3b2b;
+        font-weight: 650;
       }
-
-      .grid {
-        display: grid;
-        gap: 1rem;
-        margin-top: 1.5rem;
+      .field {
+        margin-bottom: 12px;
       }
-
-      .card {
-        padding: 1.25rem 1.4rem 1.4rem;
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.72);
-        box-shadow: 0 12px 30px rgba(41, 29, 11, 0.06);
-      }
-
-      .card h2 {
-        margin: 0 0 0.85rem;
-        font-size: 1.15rem;
-      }
-
       .row {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.85rem 1rem;
+        gap: 10px;
         align-items: center;
+        flex-wrap: wrap;
       }
-
-      .stack {
+      .small {
+        font-size: 0.84rem;
+        color: #6c5b46;
+        line-height: 1.45;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #cfc3b1;
+        background: linear-gradient(180deg, #fff, #f7f1e7);
+        cursor: pointer;
+        font-weight: 650;
+        color: #3a2a18;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          border-color 0.15s ease;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(37, 26, 12, 0.08);
+        border-color: #bca989;
+      }
+      .preview-card {
+        background: rgba(255, 255, 255, 0.76);
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid rgba(97, 73, 33, 0.08);
+        box-shadow: 0 14px 30px rgba(37, 26, 12, 0.06);
+      }
+      .controls-grid {
         display: grid;
-        gap: 0.75rem;
+        gap: 8px;
       }
-
-      .note {
+      .samples {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .hero {
+        margin-bottom: 16px;
+      }
+      .hero p {
         margin: 0;
-        color: var(--muted);
-        font-family:
-          system-ui,
-          -apple-system,
-          'Segoe UI',
-          sans-serif;
-        font-size: 0.95rem;
+        color: #6c5b46;
       }
-
-      code,
-      pre {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      .status-banner {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f7f0e1;
+        border: 1px solid #e4d4b4;
+        color: #5c471f;
+        font-size: 0.9rem;
+        display: none;
       }
-
-      pre {
-        overflow: auto;
-        margin: 0;
-        padding: 1rem 1.1rem;
+      .status-banner.show {
+        display: block;
+      }
+      .status-banner.success {
+        background: #edf6eb;
+        border-color: #c6e1c1;
+        color: #2e5a2b;
+      }
+      .status-banner.info {
+        background: #eef4fb;
+        border-color: #c7d7ea;
+        color: #284a73;
+      }
+      .status-banner.error {
+        background: #faece9;
+        border-color: #edc7c0;
+        color: #8c3528;
+      }
+      .prompt-shell {
+        display: grid;
+        gap: 10px;
+      }
+      .prompt-editor {
+        min-height: 180px;
+        border: 1px solid rgba(97, 73, 33, 0.16);
         border-radius: 14px;
-        border: 1px solid rgba(97, 73, 33, 0.18);
-        background: #1f1408;
-        color: #f7ead0;
-        white-space: pre-wrap;
+        background: #fff;
+        overflow: hidden;
       }
-
-      .muted {
-        color: var(--muted);
+      .prompt-editor .pell-actionbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 10px;
+        border-bottom: 1px solid rgba(97, 73, 33, 0.12);
+        background: linear-gradient(180deg, #fff, #faf7f1);
       }
-
-      .sample-style-royal {
-        --sc-accent: #3f2e89;
-        --sc-tooltip-bg: #16132a;
-        --sc-tooltip-color: #ece7ff;
-        --sc-inline-bg: #eee9ff;
-        --sc-inline-color: #2c1d66;
-      }
-
-      .sample-style-sage {
-        --sc-accent: #2b6b4f;
-        --sc-tooltip-bg: #11261d;
-        --sc-tooltip-color: #dbf5e8;
-        --sc-inline-bg: #eaf8f1;
-        --sc-inline-color: #1f4d38;
-        --sc-radius: 14px;
-      }
-
-      .sample-style-sand {
-        --sc-accent: #9a4d1f;
-        --sc-tooltip-bg: #2b1508;
-        --sc-tooltip-color: #ffe8d8;
-        --sc-inline-bg: #fff0e6;
-        --sc-inline-color: #5a2b11;
-        --sc-tooltip-max-width: 520px;
-      }
-
-      scripture-cite {
-        margin-right: 0.5rem;
-      }
-
-      .footer {
-        margin-top: 1.25rem;
-        color: var(--muted);
-        font-size: 0.92rem;
-        font-family:
-          system-ui,
+      .prompt-editor .pell-button {
+        min-width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid rgba(97, 73, 33, 0.16);
+        background: #fff;
+        color: #4b3b2b;
+        font:
+          600 0.86rem/1 system-ui,
           -apple-system,
-          'Segoe UI',
-          sans-serif;
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial;
       }
-
-      @media (max-width: 640px) {
-        main {
-          padding-inline: 0.9rem;
+      .prompt-editor .pell-content {
+        min-height: 128px;
+        padding: 14px;
+        outline: none;
+        font:
+          400 0.96rem/1.6 Georgia,
+          'Times New Roman',
+          serif;
+        color: #20160b;
+      }
+      .prompt-editor .pell-content p {
+        margin: 0 0 0.8em;
+      }
+      .prompt-editor .pell-content ul,
+      .prompt-editor .pell-content ol {
+        margin: 0 0 0.8em 1.25em;
+        padding: 0;
+      }
+      .prompt-preview {
+        border: 1px solid rgba(97, 73, 33, 0.12);
+        border-radius: 12px;
+        background: #fcfaf6;
+        padding: 12px 14px;
+      }
+      .prompt-preview h4 {
+        margin: 0 0 0.35rem;
+        font-size: 0.9rem;
+        color: #4b3b2b;
+      }
+      .prompt-preview .rendered {
+        font:
+          400 0.95rem/1.6 Georgia,
+          'Times New Roman',
+          serif;
+        color: #20160b;
+      }
+      .prompt-preview .rendered p {
+        margin: 0 0 0.75em;
+      }
+      .prompt-preview .rendered ul,
+      .prompt-preview .rendered ol {
+        margin: 0 0 0.75em 1.2em;
+        padding: 0;
+      }
+      .subgroup {
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px solid rgba(97, 73, 33, 0.12);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+      .subgroup-title {
+        margin: 0 0 8px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #4b3b2b;
+      }
+      .subgrid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .subgrid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .subgrid label {
+        margin-bottom: 4px;
+        font-size: 0.78rem;
+      }
+      .subgrid select,
+      .subgrid input {
+        width: 100%;
+      }
+      .verse-accordion {
+        border: 1px solid rgba(97, 73, 33, 0.16);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 0;
+      }
+      .verse-accordion > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px 14px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #4b3b2b;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+      }
+      .verse-accordion > summary::-webkit-details-marker {
+        display: none;
+      }
+      .verse-accordion > summary::after {
+        content: '▾';
+        font-size: 0.86rem;
+        opacity: 0.8;
+        transform: rotate(-90deg);
+        transition: transform 0.18s ease;
+      }
+      .verse-accordion[open] > summary::after {
+        transform: rotate(0deg);
+      }
+      .verse-accordion-body {
+        padding: 0 10px 10px;
+      }
+      .github-corner {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 40;
+        color: #fff7eb;
+      }
+      .github-corner .corner-bg {
+        fill: #3f2e1d;
+        width: 80px;
+        height: 80px;
+      }
+      .github-corner .github-mark {
+        position: absolute;
+        right: 6px;
+        top: 4px;
+        width: 22px;
+        height: 22px;
+        fill: #f8f3ea;
+      }
+      .github-corner:hover .github-mark {
+        transform: scale(1.06);
+        transition: transform 160ms ease;
+      }
+      @media (max-width: 960px) {
+        body {
+          overflow: auto;
+          flex-direction: column;
+          padding: 16px;
         }
-
-        .hero,
-        .card {
-          padding-inline: 1rem;
+        .panel,
+        .demo {
+          width: 100%;
+          min-width: 0;
+          height: auto;
+          overflow: visible;
+          position: static;
+          top: auto;
+        }
+        .github-corner .corner-bg {
+          width: 64px;
+          height: 64px;
+        }
+        .github-corner .github-mark {
+          width: 18px;
+          height: 18px;
+          right: 5px;
+          top: 4px;
         }
       }
     </style>
   </head>
   <body>
-    <main>
-      <section class="hero">
-        <p class="eyebrow">scripture-cite example</p>
-        <h1>Real markup, tooltip mode, inline mode, and zen mode.</h1>
-        <p class="lede">
-          Build the library, serve this folder, and the samples below render as
-          literal <code>&lt;scripture-cite&gt;</code> elements rather than being
-          assembled entirely in JavaScript.
+    <div class="panel">
+      <div class="hero">
+        <h3>Sandbox configuration</h3>
+        <p>
+          Adjust the display, tune Zen, and re-apply to see changes immediately.
         </p>
-      </section>
+      </div>
+      <div class="controls-grid">
+        <div class="field">
+          <details class="verse-accordion">
+            <summary>Preview verses (controlled options)</summary>
+            <div class="verse-accordion-body">
+              <div class="subgroup">
+                <p class="subgroup-title">Bible</p>
+                <div class="subgrid">
+                  <div>
+                    <label>Book</label>
+                    <select id="bibleBook"></select>
+                  </div>
+                  <div>
+                    <label>Chapter</label>
+                    <select id="bibleChapter"></select>
+                  </div>
+                  <div>
+                    <label>Verse</label>
+                    <select id="bibleVerse"></select>
+                  </div>
+                </div>
+              </div>
 
-      <div id="demo" class="grid"></div>
+              <div class="subgroup">
+                <p class="subgroup-title">Quran</p>
+                <div class="subgrid two">
+                  <div>
+                    <label>Chapter</label>
+                    <select id="quranChapter"></select>
+                  </div>
+                  <div>
+                    <label>Verse</label>
+                    <select id="quranVerse"></select>
+                  </div>
+                </div>
+              </div>
 
-      <template id="demo-template">
-        <section class="card stack">
-          <h2>Tooltip example</h2>
-          <p class="note">
-            Hover or focus the citation. The tag is written directly in the
-            HTML.
-          </p>
+              <div class="subgroup">
+                <p class="subgroup-title">Gita</p>
+                <div class="subgrid two">
+                  <div>
+                    <label>Chapter</label>
+                    <select id="gitaChapter"></select>
+                  </div>
+                  <div>
+                    <label>Verse</label>
+                    <select id="gitaVerse"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="field">
+          <label>Default mode</label>
+          <select id="mode">
+            <option value="tooltip">tooltip</option>
+            <option value="inline">inline</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Zen enabled</label>
           <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              placement="north"
-              >John 3:16 — hover or focus</scripture-cite
+            <input type="checkbox" id="zen" />
+            <span class="small">Prewarm model when checked</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Accent color</label>
+          <input id="accent" type="color" value="#8b6914" />
+        </div>
+
+        <div id="tooltipControls">
+          <div class="field">
+            <label>Tooltip background</label>
+            <input id="tooltipBg" type="color" value="#1a1208" />
+          </div>
+
+          <div class="field">
+            <label>Tooltip max width (px)</label>
+            <input id="tooltipMaxWidth" type="number" min="200" value="420" />
+          </div>
+        </div>
+
+        <div id="inlineControls" style="display: none">
+          <div class="field">
+            <label>Inline background</label>
+            <input id="inlineBg" type="color" value="#fdf6e3" />
+          </div>
+          <div class="field">
+            <label>Inline color</label>
+            <input id="inlineColor" type="color" value="#3d2b00" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Load sample data</label>
+          <div class="row">
+            <input type="checkbox" id="loadDefaults" checked />
+            <span class="small"
+              >Register embedded Bible/Quran/Gita samples</span
             >
           </div>
-        </section>
+        </div>
 
-        <section class="card stack">
-          <h2>Inline example</h2>
-          <p class="note">
-            Inline mode stays visible in the flow of text, and can now show a
-            collapsible Zen explanation below the verse.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="gita"
-              chapter="2"
-              verse="47"
-              mode="inline"
-            ></scripture-cite>
-            <scripture-cite
-              source="bible"
-              book="genesis"
-              chapter="1"
-              verse="1"
-              mode="inline"
-              zen
-            ></scripture-cite>
+        <div id="zenControls" style="display: none">
+          <div class="field prompt-shell">
+            <label>Zen system prompt</label>
+            <div id="zenEditor" class="prompt-editor"></div>
+            <div class="prompt-preview">
+              <h4>Rendered preview</h4>
+              <div id="zenPreview" class="rendered"></div>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <section class="card stack">
-          <h2>Placement examples</h2>
-          <p class="note">
-            North, east, west, and bottom placements are all shown here.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              placement="east"
-              >Psalms 23:1 — open right</scripture-cite
-            >
-            <scripture-cite
-              source="quran"
-              chapter="1"
-              verse="1"
-              placement="west"
-              >Quran 1:1 — open left</scripture-cite
-            >
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="46"
-              verse="1"
-              placement="bottom"
-              >Psalms 46:1 — open bottom</scripture-cite
-            >
-          </div>
-        </section>
+        <div class="field row">
+          <button id="apply">Apply config</button>
+          <button id="recreate">Recreate examples</button>
+        </div>
 
-        <section class="card stack">
-          <h2>Zen mode</h2>
-          <p class="note">
-            Enable zen in the config to reveal the extra explanation button in
-            tooltip mode. Hover the button first to prewarm the model and make
-            the first click feel faster.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="genesis"
-              chapter="1"
-              verse="1"
-              zen
-              >Genesis 1:1 — zen mode</scripture-cite
-            >
-            <scripture-cite source="quran" chapter="1" verse="1" zen
-              >Quran 1:1 — zen mode</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="18" verse="66" zen
-              >Bhagavad Gita 18:66 — zen mode</scripture-cite
-            >
-          </div>
-        </section>
+        <div
+          id="statusBanner"
+          class="status-banner"
+          role="status"
+          aria-live="polite"
+        ></div>
+      </div>
+      <br /><br />
+    </div>
 
-        <section class="card stack">
-          <h2>Attribute configuration samples</h2>
-          <p class="note">
-            These examples use element-level options to control reference
-            labels, loading strategy, and per-element mode.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              no-ref
-              >John 3:16 — no-ref</scripture-cite
-            >
-            <scripture-cite source="quran" chapter="1" verse="1" loading="eager"
-              >Quran 1:1 — eager</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="2" verse="47" loading="lazy"
-              >Gita 2:47 — lazy</scripture-cite
-            >
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              mode="inline"
-              no-ref
-            ></scripture-cite>
-          </div>
-          <pre><code>&lt;scripture-cite source="bible" book="john" chapter="3" verse="16" no-ref&gt;
-  John 3:16 — no-ref
-&lt;/scripture-cite&gt;
+    <div class="demo">
+      <div class="hero">
+        <p class="small">Live preview</p>
+        <h2>Configuration playground</h2>
+      </div>
+      <div class="preview-card" id="preview">
+        <p class="small">
+          Use the controls to change theme and global behaviour. Elements below
+          will reflect the current configuration.
+        </p>
 
-&lt;scripture-cite source="quran" chapter="1" verse="1" loading="eager"&gt;
-  Quran 1:1 — eager
-&lt;/scripture-cite&gt;
+        <div class="samples" id="samples">
+          <!-- sample elements inserted here -->
+        </div>
+      </div>
+    </div>
 
-&lt;scripture-cite source="gita" chapter="2" verse="47" loading="lazy"&gt;
-  Gita 2:47 — lazy
-&lt;/scripture-cite&gt;</code></pre>
-        </section>
-
-        <section class="card stack">
-          <h2>Style customization samples</h2>
-          <p class="note">
-            You can theme each element using CSS variables, either inline or by
-            applying a class.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              class="sample-style-royal"
-              >Royal palette</scripture-cite
-            >
-            <scripture-cite
-              source="quran"
-              chapter="1"
-              verse="1"
-              class="sample-style-sage"
-              >Sage palette</scripture-cite
-            >
-            <scripture-cite
-              source="gita"
-              chapter="2"
-              verse="47"
-              class="sample-style-sand"
-              >Sand palette</scripture-cite
-            >
-          </div>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              style="
-                --sc-accent: #005f73;
-                --sc-inline-bg: #e0fbfc;
-                --sc-inline-color: #003845;
-              "
-              mode="inline"
-            ></scripture-cite>
-          </div>
-          <pre><code>.sample-style-royal {
-  --sc-accent: #3f2e89;
-  --sc-tooltip-bg: #16132a;
-  --sc-tooltip-color: #ece7ff;
-}
-
-&lt;scripture-cite
-  source="bible"
-  book="john"
-  chapter="3"
-  verse="16"
-  class="sample-style-royal"
-&gt;Royal palette&lt;/scripture-cite&gt;
-
-&lt;scripture-cite
-  source="bible"
-  book="psalms"
-  chapter="23"
-  verse="1"
-  mode="inline"
-  style="--sc-accent:#005f73; --sc-inline-bg:#e0fbfc; --sc-inline-color:#003845"
-&gt;&lt;/scripture-cite&gt;</code></pre>
-        </section>
-
-        <section class="card stack">
-          <h2>Global configuration samples</h2>
-          <p class="note">
-            Copy one of these presets into your app entry point and tune it for
-            your use case.
-          </p>
-          <pre><code>ScriptureConfigure({
-  loadDefaults: ['bible', 'quran'],
-  defaultMode: 'tooltip',
-  theme: {
-    accentColor: '#8b6914',
-    tooltipBg: '#1a1208',
-    tooltipColor: '#f5e6c8',
-    tooltipMaxWidth: '460px',
-  },
-  zen: {
-    enabled: true,
-    model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-  },
-});
-
-ScriptureConfigure({
-  dataUrl: '/verses',
-  defaultMode: 'inline',
-  zen: { enabled: false },
-});</code></pre>
-        </section>
-
-        <section class="card stack">
-          <h2>Zen prompt override example</h2>
-          <p class="note">
-            The Zen prompt can be overridden per app. Use this when you want a
-            stricter format such as context, interpretation, cross-reference,
-            and relevance today.
-          </p>
-          <pre><code>ScriptureConfigure({
-  zen: {
-    enabled: true,
-    systemPrompt:
-      'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
-  },
-});</code></pre>
-        </section>
-
-        <section class="card stack">
-          <h2>Zen override test verses</h2>
-          <p class="note">
-            Test the same override prompt with these two verses:
-            <strong>John 3:16</strong> and <strong>Gita 10:20</strong>.
-          </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              zen
-              >John 3:16 — zen test</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="10" verse="20" zen
-              >Gita 10:20 — zen test</scripture-cite
-            >
-          </div>
-          <pre><code>ScriptureConfigure({
-  zen: {
-    enabled: true,
-    systemPrompt:
-      'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
-  },
-});</code></pre>
-        </section>
-
-        <section class="card stack">
-          <h2>Programmatic lookup</h2>
-          <p class="note">
-            The sample still logs a resolved verse to the console.
-          </p>
-          <pre><code>const verse = await ScriptureRegistry.resolve('bible', '1', '1', 'genesis');
-console.log('Genesis 1:1:', verse.text);</code></pre>
-        </section>
-      </template>
-    </main>
-
-    <script type="module">
-      import('../dist/scripture-cite.js')
-        .then(
-          async ({ ScriptureConfigure, ScriptureRegistry, ScriptureReady }) => {
-            ScriptureConfigure({
-              loadDefaults: true,
-              zen: {
-                enabled: true,
-                systemPrompt:
-                  'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
-              },
-            });
-
-            try {
-              await ScriptureRegistry.registerDefaults();
-
-              const demo = document.getElementById('demo');
-              const template = document.getElementById('demo-template');
-              if (demo && template instanceof HTMLTemplateElement) {
-                demo.appendChild(template.content.cloneNode(true));
-              }
-
-              await ScriptureReady();
-            } catch (err) {
-              console.error(
-                'Failed to initialise scripture-cite defaults:',
-                err,
-              );
-            }
-          },
-        )
-        .catch((err) => console.error('Failed to import bundle:', err));
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/pell@1.0.6/dist/pell.min.js"></script>
+    <script type="module" src="./sandbox.js"></script>
+    <a
+      class="github-corner"
+      href="https://github.com/VinodLouis/scripture-cite"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="View on GitHub"
+      title="View on GitHub"
+    >
+      <svg class="corner-bg" viewBox="0 0 250 250" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+      </svg>
+      <svg
+        class="github-mark"
+        viewBox="0 -0.5 25 25"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="m12.301 0h.093c2.242 0 4.34.613 6.137 1.68l-.055-.031c1.871 1.094 3.386 2.609 4.449 4.422l.031.058c1.04 1.769 1.654 3.896 1.654 6.166 0 5.406-3.483 10-8.327 11.658l-.087.026c-.063.02-.135.031-.209.031-.162 0-.312-.054-.433-.144l.002.001c-.128-.115-.208-.281-.208-.466 0-.005 0-.01 0-.014v.001q0-.048.008-1.226t.008-2.154c.007-.075.011-.161.011-.249 0-.792-.323-1.508-.844-2.025.618-.061 1.176-.163 1.718-.305l-.076.017c.573-.16 1.073-.373 1.537-.642l-.031.017c.508-.28.938-.636 1.292-1.058l.006-.007c.372-.476.663-1.036.84-1.645l.009-.035c.209-.683.329-1.468.329-2.281 0-.045 0-.091-.001-.136v.007c0-.022.001-.047.001-.072 0-1.248-.482-2.383-1.269-3.23l.003.003c.168-.44.265-.948.265-1.479 0-.649-.145-1.263-.404-1.814l.011.026c-.115-.022-.246-.035-.381-.035-.334 0-.649.078-.929.216l.012-.005c-.568.21-1.054.448-1.512.726l.038-.022-.609.384c-.922-.264-1.981-.416-3.075-.416s-2.153.152-3.157.436l.081-.02q-.256-.176-.681-.433c-.373-.214-.814-.421-1.272-.595l-.066-.022c-.293-.154-.64-.244-1.009-.244-.124 0-.246.01-.364.03l.013-.002c-.248.524-.393 1.139-.393 1.788 0 .531.097 1.04.275 1.509l-.01-.029c-.785.844-1.266 1.979-1.266 3.227 0 .025 0 .051.001.076v-.004c-.001.039-.001.084-.001.13 0 .809.12 1.591.344 2.327l-.015-.057c.189.643.476 1.202.85 1.693l-.009-.013c.354.435.782.793 1.267 1.062l.022.011c.432.252.933.465 1.46.614l.046.011c.466.125 1.024.227 1.595.284l.046.004c-.431.428-.718 1-.784 1.638l-.001.012c-.207.101-.448.183-.699.236l-.021.004c-.256.051-.549.08-.85.08-.022 0-.044 0-.066 0h.003c-.394-.008-.756-.136-1.055-.348l.006.004c-.371-.259-.671-.595-.881-.986l-.007-.015c-.198-.336-.459-.614-.768-.827l-.009-.006c-.225-.169-.49-.301-.776-.38l-.016-.004-.32-.048c-.023-.002-.05-.003-.077-.003-.14 0-.273.028-.394.077l.007-.003q-.128.072-.08.184c.039.086.087.16.145.225l-.001-.001c.061.072.13.135.205.19l.003.002.112.08c.283.148.516.354.693.603l.004.006c.191.237.359.505.494.792l.01.024.16.368c.135.402.38.738.7.981l.005.004c.3.234.662.402 1.057.478l.016.002c.33.064.714.104 1.106.112h.007c.045.002.097.002.15.002.261 0 .517-.021.767-.062l-.027.004.368-.064q0 .609.008 1.418t.008.873v.014c0 .185-.08.351-.208.466h-.001c-.119.089-.268.143-.431.143-.075 0-.147-.011-.214-.032l.005.001c-4.929-1.689-8.409-6.283-8.409-11.69 0-2.268.612-4.393 1.681-6.219l-.032.058c1.094-1.871 2.609-3.386 4.422-4.449l.058-.031c1.739-1.034 3.835-1.645 6.073-1.645h.098-.005zm-7.64 17.666q.048-.112-.112-.192-.16-.048-.208.032-.048.112.112.192.144.096.208-.032zm.497.545q.112-.08-.032-.256-.16-.144-.256-.048-.112.08.032.256.159.157.256.047zm.48.72q.144-.112 0-.304-.128-.208-.272-.096-.144.08 0 .288t.272.112zm.672.673q.128-.128-.064-.304-.192-.192-.32-.048-.144.128.064.304.192.192.32.044zm.913.4q.048-.176-.208-.256-.24-.064-.304.112t.208.24q.24.097.304-.096zm1.009.08q0-.208-.272-.176-.256 0-.256.176 0 .208.272.176.256.001.256-.175zm.929-.16q-.032-.176-.288-.144-.256.048-.224.24t.288.128.225-.224z"
+        />
+      </svg>
+    </a>
   </body>
 </html>
