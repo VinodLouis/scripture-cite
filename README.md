@@ -441,7 +441,7 @@ ScriptureConfigure({
     enabled: true,
     model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', // default
     systemPrompt:
-      'Explain the verse in context, include one cross-reference, and add one modern-day application.', // optional override
+      'Explain the verse with literary context, theological meaning, one interpretive nuance, and one modern-day implication.', // optional override
     onProgress: (pct, text) => console.log(`${pct}% — ${text}`),
   },
 });
@@ -454,7 +454,7 @@ ScriptureConfigure({
   zen: {
     enabled: true,
     systemPrompt:
-      'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
+      'Write 7-10 complete sentences in one paragraph: context, theological meaning, one interpretive nuance, and practical relevance today. Avoid repetition and end with a complete sentence.',
   },
 });
 ```
@@ -511,7 +511,7 @@ This is expected while model assets download. Use the default lightweight model 
 
 4. Zen output looks too generic
 
-Provide a custom `zen.systemPrompt` and keep it verse-specific. The built-in generation flow also retries once when output appears to be low-value paraphrase.
+Provide a custom `zen.systemPrompt` and keep it verse-specific. The built-in generation flow now requests longer analysis, retries with stricter decoding when quality is low, and filters repetitive/truncated output.
 
 ---
 

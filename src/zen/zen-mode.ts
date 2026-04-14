@@ -139,7 +139,7 @@ function _isLowValueExplanation(
   if (!text) return true;
 
   // Too short usually means no explanation.
-  if (text.length < 90) return true;
+  if (text.length < 150) return true;
 
   const verseTokens = _tokenSet(verseText);
   const explanationTokens = _tokenSet(text);
@@ -153,6 +153,167 @@ function _isLowValueExplanation(
   // If it mostly reuses verse wording and lacks interpretive language,
   // treat it as low-value paraphrase and retry once.
   return overlap >= 0.6 && !hasInterpretiveCue;
+}
+
+function _normaliseSentenceKey(sentence: string): string {
+  return sentence
+    .replace(/^\s*\d+[\.)]\s*/, '')
+    .replace(/^\s*[-*]\s*/, '')
+    .toLowerCase()
+    .replace(/["'“”‘’]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function _isNearDuplicateSentence(a: string, b: string): boolean {
+  const aTokens = _tokenSet(a);
+  const bTokens = _tokenSet(b);
+  if (aTokens.size < 8 || bTokens.size < 8) return false;
+  return _overlapRatio(aTokens, bTokens) >= 0.8;
+}
+
+function _hasDegenerateRepetition(explanation: string): boolean {
+  const text = explanation.trim();
+  if (!text) return true;
+
+  // Check repeated full sentences.
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const sentenceCounts = new Map<string, number>();
+  for (const sentence of sentences) {
+    const key = _normaliseSentenceKey(sentence);
+    if (!key) continue;
+    const next = (sentenceCounts.get(key) ?? 0) + 1;
+    sentenceCounts.set(key, next);
+    if (next >= 2 && key.split(' ').length >= 5) {
+      return true;
+    }
+  }
+
+  // If many sentences collapse to a small set after normalisation,
+  // treat as looped/degenerate text.
+  if (
+    sentences.length >= 6 &&
+    sentenceCounts.size <= Math.ceil(sentences.length / 2)
+  ) {
+    return true;
+  }
+
+  // Detect repeated quoted chunks (common failure mode in numbered outputs).
+  const quotePattern = /["“]([^"”]{20,})["”]/g;
+  const quoteCounts = new Map<string, number>();
+  for (const match of text.matchAll(quotePattern)) {
+    const key = _normaliseSentenceKey(match[1] ?? '');
+    if (!key) continue;
+    const next = (quoteCounts.get(key) ?? 0) + 1;
+    quoteCounts.set(key, next);
+    if (next >= 2) return true;
+  }
+
+  // Check repeated 3-gram phrases.
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
+
+  if (words.length < 18) return false;
+
+  const ngramCounts = new Map<string, number>();
+  for (let i = 0; i <= words.length - 3; i += 1) {
+    const gram = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
+    const next = (ngramCounts.get(gram) ?? 0) + 1;
+    ngramCounts.set(gram, next);
+    if (next >= 4) return true;
+  }
+
+  return false;
+}
+
+function _hasIncompleteTail(explanation: string): boolean {
+  const text = explanation.trim();
+  if (!text) return true;
+  if (!/[.!?]$/.test(text)) return true;
+
+  // Guard against awkward clipped endings such as "... to be with his".
+  return /\b(the|a|an|to|and|or|of|in|with|for|his|her|their)\s*[.!?]$/i.test(
+    text,
+  );
+}
+
+function _postProcessExplanation(explanation: string): string {
+  const raw = explanation.replace(/\s+/g, ' ').trim();
+  if (!raw) return '';
+
+  const sentences = raw
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Remove duplicate sentences to avoid visible looping output.
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  const dedupedForSimilarity: string[] = [];
+  for (const sentence of sentences) {
+    const key = _normaliseSentenceKey(sentence);
+    if (!key || seen.has(key)) continue;
+
+    // Also remove near-duplicate rephrasings that are not exact text matches.
+    if (
+      dedupedForSimilarity.some((prev) =>
+        _isNearDuplicateSentence(prev, sentence),
+      )
+    ) {
+      continue;
+    }
+
+    seen.add(key);
+    const cleaned = sentence.replace(/^\s*\d+[\.)]\s*/, '').trim();
+    deduped.push(cleaned);
+    dedupedForSimilarity.push(cleaned);
+  }
+
+  let text = deduped.join(' ').trim();
+
+  // If response is clipped, keep only complete-sentence prefix.
+  if (text && !/[.!?]$/.test(text)) {
+    const lastBoundary = Math.max(
+      text.lastIndexOf('.'),
+      text.lastIndexOf('!'),
+      text.lastIndexOf('?'),
+    );
+    text = lastBoundary > 0 ? text.slice(0, lastBoundary + 1).trim() : text;
+  }
+
+  return text;
+}
+
+function _isPoorQualityExplanation(
+  verseText: string,
+  explanation: string,
+): boolean {
+  return (
+    _isLowValueExplanation(verseText, explanation) ||
+    _hasDegenerateRepetition(explanation) ||
+    _hasIncompleteTail(explanation)
+  );
+}
+
+function _buildSafeFallbackExplanation(
+  verse: ResolvedVerse,
+  ref: string,
+): string {
+  return (
+    `In ${ref}, the text should be read in its immediate literary flow rather than as an isolated slogan. ` +
+    `A careful theological reading asks what this line claims about God, humanity, duty, or moral order within the larger section. ` +
+    `The verse often carries both a direct meaning for its original audience and an enduring principle that later readers apply with discernment. ` +
+    `Interpretation can vary across traditions, so strong claims should stay anchored to the wording and context of this specific passage. ` +
+    `A responsible modern application is to let this verse shape character and action without forcing it beyond its textual scope.`
+  );
 }
 
 /** Detect WebGPU support reliably */
@@ -308,9 +469,14 @@ export async function explainVerse(
   // Serve from cache
   const key = cacheKey(verse);
   if (_cache.has(key)) {
+    const cached = _cache.get(key)!;
+    const sanitized = _postProcessExplanation(cached);
+    if (sanitized && sanitized !== cached) {
+      _cache.set(key, sanitized);
+    }
     return {
       verse,
-      explanation: _cache.get(key)!,
+      explanation: sanitized || cached,
       model: _loadedModel ?? ScriptureConfigSingleton.zen.model,
     };
   }
@@ -329,19 +495,60 @@ export async function explainVerse(
   const userPrompt = `Explain this scripture verse from ${ref} (${verse.meta.version}):\n\n"${verse.text}"`;
 
   try {
-    let explanation = await _generateWithBackend(systemPrompt, userPrompt);
+    let explanation = await _generateWithBackend(
+      systemPrompt,
+      userPrompt,
+      'balanced',
+    );
 
-    if (_isLowValueExplanation(verse.text, explanation)) {
+    if (_isPoorQualityExplanation(verse.text, explanation)) {
       const retryPrompt =
-        `Your previous answer was too close to the verse text or otherwise low-value. ` +
-        `Produce a revised explanation that MUST include the following sections (short, factual):\n` +
-        `1) Context: one sentence placing the verse in the immediate chapter/section.\n` +
-        `2) Interpretation: 2-3 concise sentences explaining the verse's meaning (avoid praise/epithets).\n` +
-        `3) Practical implication: one concrete modern-day application (one sentence).\n` +
-        `4) Cross-reference: at most one short reference (book chapter:verse) and one sentence explaining the connection.\n` +
-        `If there is textual uncertainty, state it briefly. Do not paraphrase the verse; focus on interpretation, context, and relevance.\n\n` +
+        `Your previous answer was low quality (repetitive, incomplete, or too close to the verse). ` +
+        `Rewrite it as one compact paragraph of exactly 7-10 complete sentences. ` +
+        `Do not repeat phrases or sentences. Do not end mid-sentence.\n` +
+        `Required content:\n` +
+        `1) Context: 1-2 sentences placing the verse in immediate literary context.\n` +
+        `2) Interpretation: 3-4 sentences explaining key theological meaning and important terms.\n` +
+        `3) Interpretive diversity: one short sentence noting a major interpretive difference when relevant.\n` +
+        `4) Practical implication: one concrete modern application sentence.\n` +
+        `5) Optional cross-reference: at most one short reference if truly helpful.\n\n` +
         `Verse (${ref}, ${verse.meta.version}):\n"${verse.text}"`;
-      explanation = await _generateWithBackend(systemPrompt, retryPrompt);
+      explanation = await _generateWithBackend(
+        systemPrompt,
+        retryPrompt,
+        'strict',
+      );
+
+      if (_isPoorQualityExplanation(verse.text, explanation)) {
+        const finalPrompt =
+          `Produce exactly 8 complete, non-repetitive sentences explaining this verse. ` +
+          `No headings, no bullet points, no repeated wording, and finish cleanly.\n\n` +
+          `Verse (${ref}, ${verse.meta.version}):\n"${verse.text}"`;
+        explanation = await _generateWithBackend(
+          systemPrompt,
+          finalPrompt,
+          'strict',
+        );
+
+        if (_isPoorQualityExplanation(verse.text, explanation)) {
+          const lastChancePrompt =
+            `Write one paragraph with exactly 7 complete sentences explaining this verse. ` +
+            `Do NOT quote the verse directly. Do NOT number sentences. Do NOT repeat any phrase. ` +
+            `Include context, theological meaning, and one practical implication.\n\n` +
+            `Verse (${ref}, ${verse.meta.version}):\n"${verse.text}"`;
+          explanation = await _generateWithBackend(
+            systemPrompt,
+            lastChancePrompt,
+            'strict',
+          );
+        }
+      }
+    }
+
+    explanation = _postProcessExplanation(explanation);
+
+    if (_isPoorQualityExplanation(verse.text, explanation)) {
+      explanation = _buildSafeFallbackExplanation(verse, ref);
     }
 
     _cache.set(key, explanation);
@@ -362,41 +569,52 @@ export async function explainVerse(
 async function _generateWithBackend(
   systemPrompt: string,
   userPrompt: string,
+  decodeMode: 'balanced' | 'strict',
 ): Promise<string> {
   if (_backend === 'webgpu' && _webllmEngine) {
-    return _runWebGPU(systemPrompt, userPrompt);
+    return _runWebGPU(systemPrompt, userPrompt, decodeMode);
   }
   if (_backend === 'wasm' && _wasmPipeline) {
-    return _runWASM(systemPrompt, userPrompt);
+    return _runWASM(systemPrompt, userPrompt, decodeMode);
   }
   throw new Error('No backend available after init — this is a bug.');
 }
 
 // ── Runner: WebGPU ────────────────────────────────────────────
 
-async function _runWebGPU(system: string, user: string): Promise<string> {
+async function _runWebGPU(
+  system: string,
+  user: string,
+  decodeMode: 'balanced' | 'strict',
+): Promise<string> {
+  const strict = decodeMode === 'strict';
   const resp = await _webllmEngine!.chat.completions.create({
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-    temperature: 0.7,
-    max_tokens: 200,
+    temperature: strict ? 0.2 : 0.45,
+    max_tokens: strict ? 320 : 360,
   });
   return resp.choices[0]?.message?.content?.trim() ?? '';
 }
 
 // ── Runner: WASM ──────────────────────────────────────────────
 
-async function _runWASM(system: string, user: string): Promise<string> {
+async function _runWASM(
+  system: string,
+  user: string,
+  decodeMode: 'balanced' | 'strict',
+): Promise<string> {
+  const strict = decodeMode === 'strict';
   // Transformers.js uses chat-template formatted messages
   const prompt = `<|im_start|>system\n${system}<|im_end|>\n<|im_start|>user\n${user}<|im_end|>\n<|im_start|>assistant\n`;
 
   const output = await _wasmPipeline!(prompt, {
-    max_new_tokens: 180,
-    temperature: 0.7,
-    do_sample: true,
-    repetition_penalty: 1.3,
+    max_new_tokens: strict ? 320 : 360,
+    temperature: strict ? 0.2 : 0.45,
+    do_sample: !strict,
+    repetition_penalty: strict ? 1.75 : 1.45,
   });
 
   const raw = output[0]?.generated_text;

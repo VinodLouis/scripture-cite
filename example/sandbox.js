@@ -31,9 +31,11 @@ import('../dist/scripture-cite.js')
     const zenEditorMount = document.getElementById('zenEditor');
     const zenPreview = document.getElementById('zenPreview');
     const DEFAULT_ZEN_PROMPT_TEXT =
-      'You are a careful, concise scripture explainer. ' +
-      'Explain only the provided verse in 4-6 clear sentences using neutral, explanatory language. ' +
-      'Stay grounded in the verse text, avoid generic boilerplate, and do not use headings or bullet points.';
+      'You are a careful, academically grounded scripture explainer. ' +
+      'Explain only the provided verse in 7-10 complete sentences as one coherent paragraph in plain prose. ' +
+      'Include immediate literary context, key theological meaning, and one practical implication. ' +
+      'Where relevant, briefly note interpretive diversity without polemics. ' +
+      'Stay grounded in the verse text, avoid devotional filler and repetition, and end with a complete sentence.';
     const zenPromptFallback = document.createElement('textarea');
     zenPromptFallback.id = 'zenPromptFallback';
     zenPromptFallback.style.display = 'none';
@@ -45,6 +47,7 @@ import('../dist/scripture-cite.js')
     `;
 
     let zenEditorHtml = DEFAULT_ZEN_HTML;
+    let defaultSettingsSnapshot = null;
     let loadedSettingsSnapshot = null;
     let statusHideTimer = null;
 
@@ -97,12 +100,23 @@ import('../dist/scripture-cite.js')
       if (zenPreview) zenPreview.innerHTML = html;
     }
 
-    function getZenPromptText() {
+    function syncZenPromptFromEditor() {
       const content = zenEditorMount?.querySelector('.pell-content');
       const liveHtml = content?.innerHTML?.trim();
-      return htmlToPlainText(
-        liveHtml || zenEditorHtml || zenPromptFallback.value,
-      );
+      if (liveHtml) {
+        zenEditorHtml = liveHtml;
+      }
+
+      const fallback = zenEditorMount?.querySelector('textarea');
+      if (fallback && fallback.value && !liveHtml) {
+        zenEditorHtml = plainTextToHtml(fallback.value);
+      }
+
+      return zenEditorHtml || zenPromptFallback.value;
+    }
+
+    function getZenPromptText() {
+      return htmlToPlainText(syncZenPromptFromEditor());
     }
 
     function setZenPromptHtml(html) {
@@ -429,6 +443,16 @@ import('../dist/scripture-cite.js')
         content.innerHTML = initialHtml;
         zenEditorHtml = content.innerHTML;
         setZenPreview(zenEditorHtml);
+
+        // Keep the live editor state in sync even if the editor implementation
+        // does not emit a change event for every edit gesture.
+        const syncFromContent = () => {
+          zenEditorHtml = content.innerHTML;
+          setZenPreview(zenEditorHtml);
+        };
+        content.addEventListener('input', syncFromContent);
+        content.addEventListener('keyup', syncFromContent);
+        content.addEventListener('blur', syncFromContent);
       }
     }
 
@@ -487,6 +511,7 @@ import('../dist/scripture-cite.js')
 
     async function applyConfigFromUI() {
       showStatus('Applying configuration...', 'info');
+      const currentZenPrompt = getZenPromptText();
       const tooltipWidthValue = tooltipMaxWidth?.value
         ? `${tooltipMaxWidth.value}px`
         : undefined;
@@ -499,7 +524,7 @@ import('../dist/scripture-cite.js')
           inlineColor: inlineColor?.value,
           tooltipMaxWidth: tooltipWidthValue,
         },
-        zen: { enabled: !!zenChk.checked, systemPrompt: getZenPromptText() },
+        zen: { enabled: !!zenChk.checked, systemPrompt: currentZenPrompt },
         loadDefaults: loadDefaults.checked ? true : undefined,
       };
 
@@ -595,15 +620,21 @@ import('../dist/scripture-cite.js')
 
     initZenEditor();
 
+    // Capture the actual default state after the editor is initialised so
+    // reset can restore the original values, including the default prompt.
+    defaultSettingsSnapshot = captureCurrentSettingsSnapshot();
+
     // Ensure control visibility initial state
     updateControlVisibility();
 
     // Initial setup
     applyBtn.addEventListener('click', applyConfigFromUI);
     recreateBtn.addEventListener('click', () => {
-      applySettingsSnapshot(loadedSettingsSnapshot);
+      // Reset the sandbox to the original defaults, including the default
+      // Zen prompt and all theme/control values.
+      applySettingsSnapshot(defaultSettingsSnapshot);
       createSampleElements(modeSel.value, zenChk.checked);
-      showStatus('Examples reset to loaded settings.', 'success');
+      showStatus('Examples reset to default settings.', 'success');
     });
 
     // Apply initial config (load defaults + theme)

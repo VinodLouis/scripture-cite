@@ -22,9 +22,11 @@ const DEFAULT_ZEN: Required<ZenConfig> = {
   enabled: false,
   model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
   systemPrompt:
-    'You are a careful, concise scripture explainer. ' +
-    'Explain only the provided verse in 4-6 clear sentences using neutral, explanatory language. ' +
-    'Stay grounded in the verse text, avoid generic boilerplate, and do not use headings or bullet points.',
+    'You are a careful, academically grounded scripture explainer. ' +
+    'Explain only the provided verse in 7-10 complete sentences as one coherent paragraph in plain prose. ' +
+    'Include: immediate literary context, key theological meaning, and one practical implication. ' +
+    'Where relevant, briefly note interpretive diversity (for example, Jewish/Christian or Sunni/Shia perspectives) without polemics. ' +
+    'Stay grounded in the verse text, avoid devotional filler, avoid repetition, and end with a complete sentence.',
   webLLMCdn: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@latest',
   onProgress: () => {},
 };
