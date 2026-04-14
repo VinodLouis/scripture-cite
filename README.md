@@ -58,6 +58,8 @@ npm install scripture-cite
 
 For a fuller demo, see the example page in [example/index.html](example/index.html), which renders literal `<scripture-cite>` tags and includes zen mode.
 
+For a real-case demo/playground, visit https://vinodlouis.com/demos/scripture-cite/.
+
 ### Runtime Notes
 
 - Core component features (inline/tooltip, registry, theming) run in modern browsers with Web Components support.
