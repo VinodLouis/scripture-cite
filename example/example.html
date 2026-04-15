@@ -40,6 +40,7 @@
         color: var(--text);
         font-family: Georgia, 'Times New Roman', serif;
         line-height: 1.55;
+        overflow-x: hidden;
       }
 
       main {
@@ -127,6 +128,28 @@
         font-size: 0.95rem;
       }
 
+      .label {
+        margin: 0;
+        color: var(--accent);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .output {
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px dashed rgba(97, 73, 33, 0.3);
+        background: rgba(255, 255, 255, 0.65);
+        overflow-x: auto;
+      }
+
       code,
       pre {
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -175,6 +198,7 @@
 
       scripture-cite {
         margin-right: 0.5rem;
+        max-width: 100%;
       }
 
       .footer {
@@ -189,13 +213,47 @@
       }
 
       @media (max-width: 640px) {
+        body {
+          line-height: 1.5;
+        }
+
         main {
+          padding-top: 1.4rem;
+          padding-bottom: 1.8rem;
           padding-inline: 0.9rem;
+        }
+
+        h1 {
+          font-size: clamp(1.7rem, 8.5vw, 2.4rem);
+          line-height: 1.08;
+        }
+
+        .lede {
+          font-size: 0.98rem;
         }
 
         .hero,
         .card {
           padding-inline: 1rem;
+        }
+
+        pre {
+          padding: 0.8rem 0.9rem;
+          font-size: 0.84rem;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .row {
+          gap: 0.65rem;
+        }
+
+        .output {
+          padding: 0.75rem;
+        }
+
+        .card h2 {
+          font-size: 1.04rem;
         }
       }
     </style>
@@ -221,16 +279,27 @@
             Hover or focus the citation. The tag is written directly in the
             HTML.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              placement="north"
-              >John 3:16 — hover or focus</scripture-cite
-            >
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="john"
+                chapter="3"
+                verse="16"
+                placement="north"
+                >John 3:16 — hover or focus</scripture-cite
+              >
+            </div>
           </div>
+          <p class="label">Code</p>
+          <pre><code>&lt;scripture-cite
+  source="bible"
+  book="john"
+  chapter="3"
+  verse="16"
+  placement="north"
+&gt;John 3:16 — hover or focus&lt;/scripture-cite&gt;</code></pre>
         </section>
 
         <section class="card stack">
@@ -239,22 +308,36 @@
             Inline mode stays visible in the flow of text, and can now show a
             collapsible Zen explanation below the verse.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="gita"
-              chapter="2"
-              verse="47"
-              mode="inline"
-            ></scripture-cite>
-            <scripture-cite
-              source="bible"
-              book="genesis"
-              chapter="1"
-              verse="1"
-              mode="inline"
-              zen
-            ></scripture-cite>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="gita"
+                chapter="2"
+                verse="47"
+                mode="inline"
+              ></scripture-cite>
+              <scripture-cite
+                source="bible"
+                book="genesis"
+                chapter="1"
+                verse="1"
+                mode="inline"
+                zen
+              ></scripture-cite>
+            </div>
           </div>
+          <p class="label">Code</p>
+          <pre><code>&lt;scripture-cite source="gita" chapter="2" verse="47" mode="inline"&gt;&lt;/scripture-cite&gt;
+
+&lt;scripture-cite
+  source="bible"
+  book="genesis"
+  chapter="1"
+  verse="1"
+  mode="inline"
+  zen
+&gt;&lt;/scripture-cite&gt;</code></pre>
         </section>
 
         <section class="card stack">
@@ -262,31 +345,46 @@
           <p class="note">
             North, east, west, and bottom placements are all shown here.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              placement="east"
-              >Psalms 23:1 — open right</scripture-cite
-            >
-            <scripture-cite
-              source="quran"
-              chapter="1"
-              verse="1"
-              placement="west"
-              >Quran 1:1 — open left</scripture-cite
-            >
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="46"
-              verse="1"
-              placement="bottom"
-              >Psalms 46:1 — open bottom</scripture-cite
-            >
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="psalms"
+                chapter="23"
+                verse="1"
+                placement="east"
+                >Psalms 23:1 — open right</scripture-cite
+              >
+              <scripture-cite
+                source="quran"
+                chapter="1"
+                verse="1"
+                placement="west"
+                >Quran 1:1 — open left</scripture-cite
+              >
+              <scripture-cite
+                source="bible"
+                book="psalms"
+                chapter="46"
+                verse="1"
+                placement="bottom"
+                >Psalms 46:1 — open bottom</scripture-cite
+              >
+            </div>
           </div>
+          <p class="label">Code</p>
+          <pre><code>&lt;scripture-cite source="bible" book="psalms" chapter="23" verse="1" placement="east"&gt;
+  Psalms 23:1 — open right
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="quran" chapter="1" verse="1" placement="west"&gt;
+  Quran 1:1 — open left
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="bible" book="psalms" chapter="46" verse="1" placement="bottom"&gt;
+  Psalms 46:1 — open bottom
+&lt;/scripture-cite&gt;</code></pre>
         </section>
 
         <section class="card stack">
@@ -296,22 +394,37 @@
             tooltip mode. Hover the button first to prewarm the model and make
             the first click feel faster.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="genesis"
-              chapter="1"
-              verse="1"
-              zen
-              >Genesis 1:1 — zen mode</scripture-cite
-            >
-            <scripture-cite source="quran" chapter="1" verse="1" zen
-              >Quran 1:1 — zen mode</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="18" verse="66" zen
-              >Bhagavad Gita 18:66 — zen mode</scripture-cite
-            >
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="genesis"
+                chapter="1"
+                verse="1"
+                zen
+                >Genesis 1:1 — zen mode</scripture-cite
+              >
+              <scripture-cite source="quran" chapter="1" verse="1" zen
+                >Quran 1:1 — zen mode</scripture-cite
+              >
+              <scripture-cite source="gita" chapter="18" verse="66" zen
+                >Bhagavad Gita 18:66 — zen mode</scripture-cite
+              >
+            </div>
           </div>
+          <p class="label">Code</p>
+          <pre><code>&lt;scripture-cite source="bible" book="genesis" chapter="1" verse="1" zen&gt;
+  Genesis 1:1 — zen mode
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="quran" chapter="1" verse="1" zen&gt;
+  Quran 1:1 — zen mode
+&lt;/scripture-cite&gt;
+
+&lt;scripture-cite source="gita" chapter="18" verse="66" zen&gt;
+  Bhagavad Gita 18:66 — zen mode
+&lt;/scripture-cite&gt;</code></pre>
         </section>
 
         <section class="card stack">
@@ -320,30 +433,42 @@
             These examples use element-level options to control reference
             labels, loading strategy, and per-element mode.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              no-ref
-              >John 3:16 — no-ref</scripture-cite
-            >
-            <scripture-cite source="quran" chapter="1" verse="1" loading="eager"
-              >Quran 1:1 — eager</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="2" verse="47" loading="lazy"
-              >Gita 2:47 — lazy</scripture-cite
-            >
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              mode="inline"
-              no-ref
-            ></scripture-cite>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="john"
+                chapter="3"
+                verse="16"
+                no-ref
+                >John 3:16 — no-ref</scripture-cite
+              >
+              <scripture-cite
+                source="quran"
+                chapter="1"
+                verse="1"
+                loading="eager"
+                >Quran 1:1 — eager</scripture-cite
+              >
+              <scripture-cite
+                source="gita"
+                chapter="2"
+                verse="47"
+                loading="lazy"
+                >Gita 2:47 — lazy</scripture-cite
+              >
+              <scripture-cite
+                source="bible"
+                book="psalms"
+                chapter="23"
+                verse="1"
+                mode="inline"
+                no-ref
+              ></scripture-cite>
+            </div>
           </div>
+          <p class="label">Code</p>
           <pre><code>&lt;scripture-cite source="bible" book="john" chapter="3" verse="16" no-ref&gt;
   John 3:16 — no-ref
 &lt;/scripture-cite&gt;
@@ -363,44 +488,48 @@
             You can theme each element using CSS variables, either inline or by
             applying a class.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              class="sample-style-royal"
-              >Royal palette</scripture-cite
-            >
-            <scripture-cite
-              source="quran"
-              chapter="1"
-              verse="1"
-              class="sample-style-sage"
-              >Sage palette</scripture-cite
-            >
-            <scripture-cite
-              source="gita"
-              chapter="2"
-              verse="47"
-              class="sample-style-sand"
-              >Sand palette</scripture-cite
-            >
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="john"
+                chapter="3"
+                verse="16"
+                class="sample-style-royal"
+                >Royal palette</scripture-cite
+              >
+              <scripture-cite
+                source="quran"
+                chapter="1"
+                verse="1"
+                class="sample-style-sage"
+                >Sage palette</scripture-cite
+              >
+              <scripture-cite
+                source="gita"
+                chapter="2"
+                verse="47"
+                class="sample-style-sand"
+                >Sand palette</scripture-cite
+              >
+            </div>
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="psalms"
+                chapter="23"
+                verse="1"
+                style="
+                  --sc-accent: #005f73;
+                  --sc-inline-bg: #e0fbfc;
+                  --sc-inline-color: #003845;
+                "
+                mode="inline"
+              ></scripture-cite>
+            </div>
           </div>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="psalms"
-              chapter="23"
-              verse="1"
-              style="
-                --sc-accent: #005f73;
-                --sc-inline-bg: #e0fbfc;
-                --sc-inline-color: #003845;
-              "
-              mode="inline"
-            ></scripture-cite>
-          </div>
+          <p class="label">Code</p>
           <pre><code>.sample-style-royal {
   --sc-accent: #3f2e89;
   --sc-tooltip-bg: #16132a;
@@ -431,6 +560,18 @@
             Copy one of these presets into your app entry point and tune it for
             your use case.
           </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite source="bible" book="john" chapter="1" verse="1"
+                >John 1:1 — uses current global config</scripture-cite
+              >
+              <scripture-cite source="quran" chapter="112" verse="1"
+                >Quran 112:1 — uses current global config</scripture-cite
+              >
+            </div>
+          </div>
+          <p class="label">Code</p>
           <pre><code>ScriptureConfigure({
   loadDefaults: ['bible', 'quran'],
   defaultMode: 'tooltip',
@@ -460,6 +601,15 @@ ScriptureConfigure({
             stricter format such as context, interpretation, cross-reference,
             and relevance today.
           </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite source="gita" chapter="10" verse="20" zen
+                >Gita 10:20 — zen with current prompt</scripture-cite
+              >
+            </div>
+          </div>
+          <p class="label">Code</p>
           <pre><code>ScriptureConfigure({
   zen: {
     enabled: true,
@@ -475,19 +625,23 @@ ScriptureConfigure({
             Test the same override prompt with these two verses:
             <strong>John 3:16</strong> and <strong>Gita 10:20</strong>.
           </p>
-          <div class="row">
-            <scripture-cite
-              source="bible"
-              book="john"
-              chapter="3"
-              verse="16"
-              zen
-              >John 3:16 — zen test</scripture-cite
-            >
-            <scripture-cite source="gita" chapter="10" verse="20" zen
-              >Gita 10:20 — zen test</scripture-cite
-            >
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="john"
+                chapter="3"
+                verse="16"
+                zen
+                >John 3:16 — zen test</scripture-cite
+              >
+              <scripture-cite source="gita" chapter="10" verse="20" zen
+                >Gita 10:20 — zen test</scripture-cite
+              >
+            </div>
           </div>
+          <p class="label">Code</p>
           <pre><code>ScriptureConfigure({
   zen: {
     enabled: true,
@@ -502,6 +656,12 @@ ScriptureConfigure({
           <p class="note">
             The sample still logs a resolved verse to the console.
           </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <pre><code>Console output:
+Genesis 1:1: In the beginning God created the heaven and the earth.</code></pre>
+          </div>
+          <p class="label">Code</p>
           <pre><code>const verse = await ScriptureRegistry.resolve('bible', '1', '1', 'genesis');
 console.log('Genesis 1:1:', verse.text);</code></pre>
         </section>

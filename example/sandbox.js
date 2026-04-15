@@ -51,6 +51,12 @@ import('../dist/scripture-cite.js')
     let loadedSettingsSnapshot = null;
     let statusHideTimer = null;
 
+    function getResponsiveTooltipWidthFallback() {
+      const viewport =
+        typeof window !== 'undefined' ? window.innerWidth : 1024;
+      return Math.max(220, Math.min(420, viewport - 24));
+    }
+
     const FALLBACK_SCRIPTURE_CHOICES = {
       bible: {
         books: {
@@ -345,8 +351,11 @@ import('../dist/scripture-cite.js')
       if (accent && snapshot.accentColor) accent.value = snapshot.accentColor;
       if (tooltipBg && snapshot.tooltipBg) tooltipBg.value = snapshot.tooltipBg;
       if (tooltipMaxWidth && snapshot.tooltipMaxWidth) {
+        const parsed = parseInt(snapshot.tooltipMaxWidth, 10);
         tooltipMaxWidth.value = String(
-          parseInt(snapshot.tooltipMaxWidth, 10) || 420,
+          Number.isFinite(parsed)
+            ? parsed
+            : getResponsiveTooltipWidthFallback(),
         );
       }
       if (inlineBg && snapshot.inlineBg) inlineBg.value = snapshot.inlineBg;

@@ -15,7 +15,7 @@ describe('ScriptureConfigSingleton', () => {
     expect(t.accentColor).toBe('#8b6914');
     expect(t.verseFont).toContain('Georgia');
     expect(t.borderRadius).toBe('8px');
-    expect(t.tooltipMaxWidth).toBe('420px');
+    expect(t.tooltipMaxWidth).toBe('min(420px, calc(100vw - 24px))');
   });
 
   it('merges theme overrides with defaults', () => {

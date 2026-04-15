@@ -43,7 +43,7 @@ const PORTAL_STYLES = /* css */ `
 .sc-tooltip-wrap.open { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; transform: translateX(-50%) translateY(0) !important; }
 .sc-tooltip {
   display: block !important;
-  max-width: var(--sc-tooltip-max-width, 420px) !important;
+  max-width: min(var(--sc-tooltip-max-width, 420px), calc(100vw - 24px)) !important;
   box-sizing: border-box !important;
   background: var(--sc-tooltip-bg, #1a1208) !important;
   color: var(--sc-tooltip-color, #f5e6c8) !important;
@@ -196,7 +196,7 @@ const STYLES = /* css */ `
 
   .sc-tooltip {
     display: block;
-    max-width: var(--sc-tooltip-max-width, 420px);
+    max-width: min(var(--sc-tooltip-max-width, 420px), calc(100vw - 24px));
     box-sizing: border-box;
     background: var(--sc-tooltip-bg, #1a1208);
     color: var(--sc-tooltip-color, #f5e6c8);

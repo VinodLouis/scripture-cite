@@ -14,7 +14,7 @@ const DEFAULT_THEME: Required<ScriptureTheme> = {
   inlineColor: '#3d2b00',
   inlineBg: '#fdf6e3',
   tooltipShadow: '0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)',
-  tooltipMaxWidth: '420px',
+  tooltipMaxWidth: 'min(420px, calc(100vw - 24px))',
   animDuration: '200ms',
 };
 

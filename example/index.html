@@ -36,6 +36,7 @@
           linear-gradient(180deg, #f8f3ea 0%, #efe6d7 100%);
         color: #1f160c;
         overflow: hidden;
+        overflow-x: hidden;
       }
       .panel {
         background: rgba(255, 255, 255, 0.82);
@@ -70,6 +71,12 @@
       }
       .field {
         margin-bottom: 12px;
+      }
+      select,
+      input,
+      button,
+      textarea {
+        font: inherit;
       }
       .row {
         display: flex;
@@ -321,6 +328,7 @@
           overflow: auto;
           flex-direction: column;
           padding: 16px;
+          gap: 14px;
         }
         .panel,
         .demo {
@@ -340,6 +348,37 @@
           height: 18px;
           right: 5px;
           top: 4px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 10px;
+        }
+
+        .panel,
+        .preview-card {
+          border-radius: 16px;
+          padding: 16px 14px;
+        }
+
+        .subgrid,
+        .subgrid.two {
+          grid-template-columns: 1fr;
+        }
+
+        .verse-accordion > summary {
+          padding: 10px 12px;
+          font-size: 0.86rem;
+        }
+
+        .field.row {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .field.row button {
+          width: 100%;
         }
       }
     </style>
