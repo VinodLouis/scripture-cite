@@ -29,6 +29,10 @@ const DEFAULT_ZEN: Required<ZenConfig> = {
     'Stay grounded in the verse text, avoid devotional filler, avoid repetition, and end with a complete sentence.',
   webLLMCdn: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@latest',
   onProgress: () => {},
+  provider: 'local',
+  customProvider: null,
+  cacheMaxEntries: 200,
+  cacheTtlMs: 1000 * 60 * 60 * 6,
 };
 
 class ScriptureConfigManager {

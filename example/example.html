@@ -483,6 +483,79 @@
         </section>
 
         <section class="card stack">
+          <h2>Registering data</h2>
+          <p class="note">
+            Both of these patterns are supported: automatic URL loading via
+            <code>dataUrl</code> and explicit registration with
+            <code>registerFromUrl()</code>. The remote URL must be
+            browser-reachable, so it should allow cross-origin requests.
+          </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <span class="muted">Option B auto-loads verse data from a base URL.</span>
+            </div>
+            <div class="row" style="margin-top: 0.5rem">
+              <span class="muted">Option C fetches and registers a specific scripture JSON file.</span>
+            </div>
+          </div>
+          <p class="label">Code</p>
+          <pre><code>// Option B — Auto-fetch from URL
+ScriptureConfigure({ dataUrl: '/verses' });
+
+// Option C — Register from any remote URL explicitly
+await ScriptureRegistry.registerFromUrl(
+  'bible',
+  'https://example.com/kjv.json',
+);</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Zen mode sample</h2>
+          <p class="note">
+            Zen works on the verse context only. The button appears next to the
+            verse and can be configured globally with <code>ScriptureConfigure</code>.
+          </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite
+                source="bible"
+                book="genesis"
+                chapter="1"
+                verse="1"
+                zen
+              ></scripture-cite>
+              <scripture-cite
+                source="bible"
+                book="john"
+                chapter="3"
+                verse="16"
+                mode="inline"
+                zen
+              ></scripture-cite>
+            </div>
+          </div>
+          <p class="label">Code</p>
+          <pre><code>&lt;scripture-cite
+  source="bible"
+  book="genesis"
+  chapter="1"
+  verse="1"
+  zen
+&gt;&lt;/scripture-cite&gt;
+
+&lt;scripture-cite
+  source="bible"
+  book="john"
+  chapter="3"
+  verse="16"
+  mode="inline"
+  zen
+&gt;&lt;/scripture-cite&gt;</code></pre>
+        </section>
+
+        <section class="card stack">
           <h2>Style customization samples</h2>
           <p class="note">
             You can theme each element using CSS variables, either inline or by
@@ -499,6 +572,7 @@
                 class="sample-style-royal"
                 >Royal palette</scripture-cite
               >
+              </code></pre>
               <scripture-cite
                 source="quran"
                 chapter="1"
@@ -615,6 +689,42 @@ ScriptureConfigure({
     enabled: true,
     systemPrompt:
       'Explain the verse in 3 short parts: context, meaning, and relevance today. Include one cross-reference only if it helps.',
+  },
+});</code></pre>
+        </section>
+
+        <section class="card stack">
+          <h2>Custom Zen provider example</h2>
+          <p class="note">
+            Switch Zen to custom provider mode when you want to call your own
+            API. In the sandbox, the provider is editable as a code snippet so
+            you can parse any response shape or return a static answer.
+          </p>
+          <p class="label">Output</p>
+          <div class="output">
+            <div class="row">
+              <scripture-cite source="gita" chapter="2" verse="47" zen
+                >Gita 2:47 — custom provider ready</scripture-cite
+              >
+            </div>
+          </div>
+          <p class="label">Code</p>
+          <pre><code>ScriptureConfigure({
+  zen: {
+    enabled: true,
+    provider: 'custom',
+    customProvider: async ({ reference, verse, systemPrompt, userPrompt }) => {
+      const response = await fetch('/api/zen-explain', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reference, verseText: verse.text, systemPrompt, userPrompt }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      return String(data.explanation ?? data.response ?? data.text ?? '').trim();
+    },
   },
 });</code></pre>
         </section>

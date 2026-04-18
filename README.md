@@ -10,18 +10,21 @@
 
 ## Features
 
-| Feature                     | Description                                         |
-| --------------------------- | --------------------------------------------------- |
-| 📖 **Multi-scripture**      | Bible (KJV/NIV/etc.), Quran, Bhagavad Gita          |
-| 🏷️ **Type-safe enums**      | `BibleBook`, `QuranSurah`, `GitaChapter` — no typos |
-| ⚡ **O(1) verse lookup**    | Pre-built flat index Map, zero iteration            |
-| 🎨 **Inline & Tooltip**     | Two display modes with smart positioning            |
-| 🧩 **Web Component**        | Works with React, Vue, Angular, or vanilla HTML     |
-| 🎭 **Themeable**            | CSS custom properties, full color control           |
-| 📦 **Bring your own data**  | Register custom JSON or fetch from URL              |
-| ✦ **Zen Mode** _(optional)_ | In-browser LLM explanations via WebLLM/WebGPU       |
-| 🦥 **Lazy loading**         | IntersectionObserver for off-screen elements        |
-| 🔒 **Zero dependencies**    | No runtime deps — Zen mode loads LLM dynamically    |
+| Feature                       | Description                                         |
+| ----------------------------- | --------------------------------------------------- |
+| 📖 **Multi-scripture**        | Bible (KJV/NIV/etc.), Quran, Bhagavad Gita          |
+| 🏷️ **Type-safe enums**        | `BibleBook`, `QuranSurah`, `GitaChapter` — no typos |
+| ⚡ **O(1) verse lookup**      | Pre-built flat index Map, zero iteration            |
+| 🎨 **Inline & Tooltip**       | Two display modes with smart positioning            |
+| 🧩 **Web Component**          | Works with React, Vue, Angular, or vanilla HTML     |
+| 🎭 **Themeable**              | CSS custom properties, full color control           |
+| 📦 **Bring your own data**    | Register custom JSON or fetch from URL              |
+| ✦ **Zen Mode** _(optional)_   | In-browser LLM explanations via WebLLM/WebGPU       |
+| 🔌 **Pluggable Zen provider** | Use built-in local model or your own async provider |
+| 🧠 **Bounded Zen cache**      | LRU + TTL cache to prevent unbounded session memory |
+| 🧵 **WASM off main thread**   | Worker-based fallback generation on low-end devices |
+| 🦥 **Lazy loading**           | IntersectionObserver for off-screen elements        |
+| 🔒 **Zero dependencies**      | No runtime deps — Zen mode loads LLM dynamically    |
 
 ---
 
@@ -29,9 +32,19 @@
 
 ### Install
 
+This package is not currently published on npm.
+
+Use one of these options instead:
+
 ```bash
-npm install scripture-cite
+# Clone locally and build
+git clone https://github.com/vinodlouis/scripture-cite.git
+cd scripture-cite
+npm install
+npm run build
 ```
+
+Then consume it from your local build output or workspace link.
 
 ### Usage
 
@@ -56,15 +69,25 @@ npm install scripture-cite
 </scripture-cite>
 ```
 
-For a fuller demo, see the example page in [example/index.html](example/index.html), which renders literal `<scripture-cite>` tags and includes zen mode.
+For rendered code + output examples, see [example/example.html](example/example.html).
+
+For the interactive configuration sandbox, see [example/index.html](example/index.html).
+
+| Demo Page                                    | Best For                        | Includes                                             |
+| -------------------------------------------- | ------------------------------- | ---------------------------------------------------- |
+| [example/example.html](example/example.html) | Quick copy-paste examples       | Output + code sections, Zen snippets, style samples |
+| [example/index.html](example/index.html)     | Live tuning and experimentation | Config playground, provider editor, Zen controls   |
 
 For a real-case demo/playground, visit https://vinodlouis.com/demos/scripture-cite/.
 
 ### Runtime Notes
 
 - Core component features (inline/tooltip, registry, theming) run in modern browsers with Web Components support.
+- Tooltip max width is mobile-friendly by default: `min(420px, calc(100vw - 24px))`.
 - Zen mode prefers WebGPU (best experience), then falls back to WASM/Transformers.js when WebGPU is unavailable.
+- WASM fallback generation runs in a Web Worker when available to reduce main-thread contention.
 - First zen use may require a model download; subsequent runs are cached by the browser.
+- Zen cache is bounded by LRU + TTL (`zen.cacheMaxEntries`, `zen.cacheTtlMs`).
 
 ## API At A Glance
 
@@ -72,7 +95,43 @@ For a real-case demo/playground, visit https://vinodlouis.com/demos/scripture-ci
 - `ScriptureReady()` waits for the custom element definition and upgrades existing tags.
 - `ScriptureRegistry` registers verse data, resolves verses, and loads bundled defaults or remote JSON.
 - `initZenEngine()` pre-warms the model engine when you want to hide first-use latency.
+- `getZenStatus()` reports the current Zen lifecycle state.
+- `getZenBackend()` reports whether the current Zen runtime is `webgpu` or `wasm`.
+- `resetZenEngine()` clears the active Zen runtime state.
+- `clearZenCache()` clears cached Zen explanations.
+- `scheduleZenIdlePrewarm()` schedules best-effort idle prewarm.
+- `hintZenAssetPrefetch()` adds prefetch/preconnect hints for Zen assets.
 - `explainVerse()` generates a verse explanation programmatically.
+
+### Public API Reference
+
+ScriptureRegistry methods:
+
+| Method | Parameters | Returns | Notes |
+| ------ | ---------- | ------- | ----- |
+| `register` | `source`, `data` | `void` | Registers in-memory scripture data. |
+| `registerFromUrl` | `source`, `url` | `Promise<void>` | Fetches JSON from a browser-reachable URL. |
+| `registerDefaults` | `sources?` | `Promise<void>` | Loads bundled sample JSONs; accepts an optional array of source ids. |
+| `resolve` | `source`, `chapter`, `verse`, `book?` | `Promise<ResolvedVerse>` | Resolves a verse asynchronously. |
+| `resolveSync` | `source`, `chapter`, `verse`, `book?` | `ResolvedVerse \| undefined` | Synchronous lookup if the source is already registered. |
+| `isRegistered` | `source` | `boolean` | Checks whether a source is registered. |
+| `getMeta` | `source` | `ScriptureMeta \| undefined` | Returns registered metadata. |
+| `setHasBook` | `source`, `value` | `void` | Marks whether a source uses a book dimension. |
+| `unregister` | `source` | `void` | Removes one source from the registry. |
+| `clear` | none | `void` | Clears all registry entries. |
+
+Zen helper functions:
+
+| Function | Parameters | Returns | Notes |
+| -------- | ---------- | ------- | ----- |
+| `getZenStatus` | none | `ZenStatus` | Returns `idle`, `loading-model`, `ready`, `generating`, or `error`. |
+| `getZenBackend` | none | `webgpu \| wasm \| null` | Reports which backend is currently active. |
+| `initZenEngine` | `onStatusChange?` | `Promise<void>` | Prewarms the Zen engine. |
+| `explainVerse` | `verse`, `onStatusChange?` | `Promise<ZenExplanation>` | Generates an explanation programmatically. |
+| `resetZenEngine` | none | `Promise<void>` | Clears active runtime state. |
+| `clearZenCache` | none | `Promise<void>` | Clears cached Zen explanations. |
+| `scheduleZenIdlePrewarm` | none | `Promise<void>` | Schedules idle prewarming. |
+| `hintZenAssetPrefetch` | none | `Promise<void>` | Adds asset prefetch/preconnect hints. |
 
 ---
 
@@ -98,14 +157,17 @@ import { ScriptureConfigure } from 'scripture-cite';
 ScriptureConfigure({ dataUrl: '/verses' });
 ```
 
-### Option C — Register from URL explicitly
+### Option C — Register from any remote URL explicitly
 
 ```typescript
 await ScriptureRegistry.registerFromUrl(
   'bible',
-  'https://cdn.example.com/kjv.json',
+  'https://example.com/kjv.json',
 );
 ```
+
+This URL must be reachable from the browser, which usually means it needs to
+allow cross-origin requests.
 
 ### Option D — Load bundled defaults (opt-in)
 
@@ -286,11 +348,46 @@ ScriptureConfigure({
     inlineColor: '#3d2b00',
     inlineBg: '#fdf6e3',
     tooltipShadow: '0 8px 32px rgba(0,0,0,0.35)',
-    tooltipMaxWidth: '420px',
+    tooltipMaxWidth: 'min(420px, calc(100vw - 24px))',
     animDuration: '200ms',
   },
 
+  zen: {
+    enabled: true,
+    provider: 'local', // 'local' | 'custom'
+    cacheMaxEntries: 200,
+    cacheTtlMs: 1000 * 60 * 60 * 6, // 6 hours
+  },
+
   onError: (err) => console.error('Scripture error:', err.code, err.message),
+});
+```
+
+### Custom Zen Provider (API or Static)
+
+```typescript
+import { ScriptureConfigure } from 'scripture-cite';
+
+ScriptureConfigure({
+  zen: {
+    enabled: true,
+    provider: 'custom',
+    customProvider: async ({ verse, reference, systemPrompt, userPrompt }) => {
+      // Replace with your own API call
+      const response = await fetch('/api/zen-explain', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          reference,
+          verseText: verse.text,
+          systemPrompt,
+          userPrompt,
+        }),
+      });
+      const json = await response.json();
+      return json.explanation as string;
+    },
+  },
 });
 ```
 
@@ -353,16 +450,18 @@ You can also override via CSS on any element or `:root`:
 
 ## Element Attributes
 
-| Attribute | Required   | Values                 | Description                                   |
-| --------- | ---------- | ---------------------- | --------------------------------------------- |
-| `source`  | ✅         | `bible` `quran` `gita` | Scripture source                              |
-| `book`    | Bible only | e.g. `genesis`         | Book name (not needed for Quran/Gita)         |
-| `chapter` | ✅         | `"1"` – `"150"`        | Chapter number                                |
-| `verse`   | ✅         | `"1"` – `"176"`        | Verse number                                  |
-| `mode`    | –          | `inline` `tooltip`     | Display mode (global default if omitted)      |
-| `zen`     | –          | `true`                 | Enable Zen explanation UI (tooltip or inline) |
-| `no-ref`  | –          | –                      | Hide reference label                          |
-| `loading` | –          | `eager` `lazy`         | Force load strategy (tooltip=lazy by default) |
+| Attribute | Required | Default | Values | Description |
+| --------- | -------- | ------- | ------ | ----------- |
+| `source` | Yes | — | `bible`, `quran`, `gita`, or a custom registered source | Scripture source. |
+| `book` | Bible only | — | e.g. `genesis` | Book name, only needed when the source uses books. |
+| `chapter` | Yes | — | string number | Chapter number. |
+| `verse` | Yes | — | string number | Verse number. |
+| `mode` | No | `tooltip` | `inline`, `tooltip` | Display mode for the element. |
+| `placement` | No | auto placement | `north`, `south`, `east`, `west` | Tooltip placement override. |
+| `zen` | No | off | `true`, empty attribute, or `false` | Enables Zen UI on the element when global Zen is enabled. |
+| `no-ref` | No | false | boolean attribute | Hides the rendered reference label. |
+| `loading` | No | `lazy` in tooltip mode, `eager` in inline mode | `eager`, `lazy` | Controls initial loading strategy. |
+| child text | No | reference text | any HTML text | Tooltip trigger text. If omitted, the reference is shown. |
 
 ---
 
@@ -441,10 +540,29 @@ The Zen explanation prompt is configurable. If you do not pass `systemPrompt`, t
 ScriptureConfigure({
   zen: {
     enabled: true,
+    provider: 'local', // default
     model: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', // default
     systemPrompt:
       'Explain the verse with literary context, theological meaning, one interpretive nuance, and one modern-day implication.', // optional override
     onProgress: (pct, text) => console.log(`${pct}% — ${text}`),
+    cacheMaxEntries: 200,
+    cacheTtlMs: 1000 * 60 * 60 * 6,
+  },
+});
+```
+
+### Custom Zen Provider Mode
+
+Use this when you want your own API, hosted model, or static responses:
+
+```typescript
+ScriptureConfigure({
+  zen: {
+    enabled: true,
+    provider: 'custom',
+    customProvider: async ({ reference }) => {
+      return `Custom explanation for ${reference}`;
+    },
   },
 });
 ```
@@ -485,9 +603,18 @@ Zen explanations are rendered safely:
 ### Programmatic API
 
 ```typescript
-import { initZenEngine, explainVerse } from 'scripture-cite';
+import {
+  initZenEngine,
+  scheduleZenIdlePrewarm,
+  hintZenAssetPrefetch,
+  explainVerse,
+} from 'scripture-cite';
 
-// Pre-warm the engine
+// Optional: early network + idle warmup
+hintZenAssetPrefetch();
+scheduleZenIdlePrewarm();
+
+// Direct pre-warm on demand
 await initZenEngine((status) => console.log('Model:', status));
 
 // Explain a resolved verse
@@ -585,9 +712,19 @@ ScriptureRegistry.register('quran', quranData);
 
 ```bash
 npm test           # Run tests
+npm run test:bench # Run benchmark harness
 npm run test:watch # Watch mode
 npm run test:coverage
 ```
+
+### Benchmark Harness Metrics
+
+`test:bench` currently reports:
+
+- Resolve throughput (ops/s)
+- Tooltip open latency (DOM path)
+- First Zen response latency (custom provider path)
+- Memory snapshot (heap used)
 
 ## Production Checklist
 

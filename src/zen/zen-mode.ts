@@ -26,6 +26,7 @@ import type {
   ZenExplanation,
   ZenStatus,
   ZenConfig,
+  ZenProviderRequest,
 } from '../types.js';
 import { ScriptureError } from '../types.js';
 import { ScriptureConfigSingleton } from '../config.js';
@@ -94,6 +95,33 @@ interface TransformersModule {
   ): Promise<TransformersPipeline>;
 }
 
+interface WasmWorkerInitMessage {
+  type: 'init';
+  id: number;
+  model: string;
+}
+
+interface WasmWorkerGenerateMessage {
+  type: 'generate';
+  id: number;
+  prompt: string;
+  strict: boolean;
+}
+
+type WasmWorkerInbound = WasmWorkerInitMessage | WasmWorkerGenerateMessage;
+
+type WasmWorkerOutbound =
+  | {
+      type: 'init-progress';
+      id: number;
+      progress: number;
+      text: string;
+    }
+  | { type: 'init-done'; id: number }
+  | { type: 'init-error'; id: number; error: string }
+  | { type: 'generate-done'; id: number; text: string }
+  | { type: 'generate-error'; id: number; error: string };
+
 // ── State ─────────────────────────────────────────────────────
 
 let _backend: ZenBackend = null;
@@ -103,13 +131,234 @@ let _wasmPipeline: TransformersPipeline | null = null;
 let _loadedModel: string | null = null;
 let _status: ZenStatus = 'idle';
 
+let _wasmWorker: Worker | null = null;
+let _wasmWorkerUrl: string | null = null;
+let _wasmWorkerRequestId = 1;
+let _wasmWorkerInitPromise: Promise<void> | null = null;
+const _wasmWorkerPending = new Map<
+  number,
+  {
+    resolve: (value: string | void) => void;
+    reject: (reason?: unknown) => void;
+  }
+>();
+let _prefetchHinted = false;
+let _idlePrewarmScheduled = false;
+
 /** Per-verse explanation cache (survives model restarts) */
-const _cache = new Map<string, string>();
+interface CacheEntry {
+  explanation: string;
+  expiresAt: number;
+  touchedAt: number;
+}
+const _cache = new Map<string, CacheEntry>();
 
 // ── Helpers ───────────────────────────────────────────────────
 
 function cacheKey(v: ResolvedVerse): string {
   return `${v.source}:${v.book ?? ''}:${v.chapter}:${v.verse}`;
+}
+
+function _nowMs(): number {
+  return Date.now();
+}
+
+function _readCache(key: string): string | null {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= _nowMs()) {
+    _cache.delete(key);
+    return null;
+  }
+
+  entry.touchedAt = _nowMs();
+  _cache.set(key, entry);
+  return entry.explanation;
+}
+
+function _pruneCache(): void {
+  const cfg = ScriptureConfigSingleton.zen;
+  const now = _nowMs();
+
+  for (const [key, entry] of _cache.entries()) {
+    if (entry.expiresAt <= now) _cache.delete(key);
+  }
+
+  const maxEntries = Math.max(10, cfg.cacheMaxEntries);
+  if (_cache.size <= maxEntries) return;
+
+  const sorted = [..._cache.entries()].sort(
+    (a, b) => a[1].touchedAt - b[1].touchedAt,
+  );
+  const overflow = _cache.size - maxEntries;
+  for (let i = 0; i < overflow; i += 1) {
+    const candidate = sorted[i];
+    if (!candidate) break;
+    _cache.delete(candidate[0]);
+  }
+}
+
+function _writeCache(key: string, explanation: string): void {
+  const cfg = ScriptureConfigSingleton.zen;
+  const now = _nowMs();
+  const ttl = Math.max(10_000, cfg.cacheTtlMs);
+  _cache.set(key, {
+    explanation,
+    expiresAt: now + ttl,
+    touchedAt: now,
+  });
+  _pruneCache();
+}
+
+function _ensurePrefetchHints(): void {
+  if (_prefetchHinted || typeof document === 'undefined') return;
+  _prefetchHinted = true;
+
+  try {
+    const links: Array<{ rel: string; href: string }> = [
+      { rel: 'preconnect', href: 'https://cdn.jsdelivr.net' },
+      { rel: 'modulepreload', href: WEBLLM_ESM_URL },
+      { rel: 'modulepreload', href: TRANSFORMERS_ESM_URL },
+    ];
+
+    for (const item of links) {
+      const existing = document.head.querySelector(
+        `link[rel="${item.rel}"][href="${item.href}"]`,
+      );
+      if (existing) continue;
+      const link = document.createElement('link');
+      link.rel = item.rel;
+      link.href = item.href;
+      document.head.appendChild(link);
+    }
+  } catch {
+    // ignore best-effort hinting failures
+  }
+}
+
+function _getWasmWorkerScript(): string {
+  return `
+const TRANSFORMERS_ESM_URL = ${JSON.stringify(TRANSFORMERS_ESM_URL)};
+let pipeline = null;
+
+async function ensurePipeline(model, id) {
+  if (pipeline) {
+    self.postMessage({ type: 'init-done', id });
+    return;
+  }
+
+  const mod = await import(TRANSFORMERS_ESM_URL);
+  pipeline = await mod.pipeline('text-generation', model, {
+    dtype: 'q4',
+    progress_callback: ({ status, progress, file }) => {
+      if (status === 'progress' && progress !== undefined) {
+        self.postMessage({
+          type: 'init-progress',
+          id,
+          progress: Math.round(progress),
+          text: 'Downloading ' + (file || model) + ' — ' + Math.round(progress) + '%',
+        });
+      }
+    },
+  });
+  self.postMessage({ type: 'init-done', id });
+}
+
+self.onmessage = async (event) => {
+  const msg = event.data;
+  try {
+    if (msg.type === 'init') {
+      await ensurePipeline(msg.model, msg.id);
+      return;
+    }
+
+    if (msg.type === 'generate') {
+      if (!pipeline) {
+        throw new Error('WASM pipeline not initialised');
+      }
+      const output = await pipeline(msg.prompt, {
+        max_new_tokens: msg.strict ? 320 : 360,
+        temperature: msg.strict ? 0.2 : 0.45,
+        do_sample: !msg.strict,
+        repetition_penalty: msg.strict ? 1.75 : 1.45,
+      });
+      const raw = output?.[0]?.generated_text;
+      let text = '';
+      if (typeof raw === 'string') {
+        text = raw.slice(msg.prompt.length).trim();
+      } else if (Array.isArray(raw)) {
+        const last = raw[raw.length - 1];
+        if (last && typeof last === 'object' && 'content' in last) {
+          text = String(last.content || '').trim();
+        }
+      }
+      self.postMessage({ type: 'generate-done', id: msg.id, text });
+    }
+  } catch (err) {
+    const error = String(err instanceof Error ? err.message : err);
+    if (msg.type === 'init') {
+      self.postMessage({ type: 'init-error', id: msg.id, error });
+    } else {
+      self.postMessage({ type: 'generate-error', id: msg.id, error });
+    }
+  }
+};
+`;
+}
+
+function _ensureWasmWorker(cfg: Required<ZenConfig>): Worker {
+  if (_wasmWorker) return _wasmWorker;
+
+  const script = _getWasmWorkerScript();
+  const blob = new Blob([script], { type: 'text/javascript' });
+  _wasmWorkerUrl = URL.createObjectURL(blob);
+  _wasmWorker = new Worker(_wasmWorkerUrl, { type: 'module' });
+
+  _wasmWorker.onmessage = (event: MessageEvent<WasmWorkerOutbound>) => {
+    const msg = event.data;
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'init-progress') {
+      cfg.onProgress(msg.progress, msg.text);
+      return;
+    }
+
+    const pending = _wasmWorkerPending.get(msg.id);
+    if (!pending) return;
+    _wasmWorkerPending.delete(msg.id);
+
+    if (msg.type === 'init-done') {
+      pending.resolve();
+      return;
+    }
+    if (msg.type === 'generate-done') {
+      pending.resolve(msg.text);
+      return;
+    }
+    if (msg.type === 'init-error' || msg.type === 'generate-error') {
+      pending.reject(new Error(msg.error));
+    }
+  };
+
+  _wasmWorker.onerror = (event) => {
+    for (const [, pending] of _wasmWorkerPending) {
+      pending.reject(new Error(String(event.message || 'WASM worker failed')));
+    }
+    _wasmWorkerPending.clear();
+  };
+
+  return _wasmWorker;
+}
+
+function _postToWasmWorker(message: WasmWorkerInbound): Promise<string | void> {
+  return new Promise((resolve, reject) => {
+    if (!_wasmWorker) {
+      reject(new Error('WASM worker is not available'));
+      return;
+    }
+    _wasmWorkerPending.set(message.id, { resolve, reject });
+    _wasmWorker.postMessage(message);
+  });
 }
 
 function _tokenSet(input: string): Set<string> {
@@ -352,21 +601,50 @@ async function loadWASMBackend(cfg: Required<ZenConfig>): Promise<void> {
   const wasmModel = WASM_FALLBACK_MODEL;
   cfg.onProgress(0, 'Loading WASM engine (Transformers.js)…');
 
-  const mod = (await import(
-    /* @vite-ignore */ TRANSFORMERS_ESM_URL
-  )) as TransformersModule;
-
-  _wasmPipeline = await mod.pipeline('text-generation', wasmModel, {
-    dtype: 'q4', // int4 quantisation — smallest footprint (~350 MB)
-    progress_callback: ({ status, progress, file }) => {
-      if (status === 'progress' && progress !== undefined) {
-        cfg.onProgress(
-          Math.round(progress),
-          `Downloading ${file ?? wasmModel} — ${Math.round(progress)}%`,
-        );
+  let workerReady = false;
+  if (typeof Worker !== 'undefined' && typeof URL !== 'undefined') {
+    try {
+      _ensureWasmWorker(cfg);
+      if (_wasmWorkerInitPromise === null) {
+        const id = _wasmWorkerRequestId++;
+        _wasmWorkerInitPromise = _postToWasmWorker({
+          type: 'init',
+          id,
+          model: wasmModel,
+        }).then(() => undefined);
       }
-    },
-  });
+      await _wasmWorkerInitPromise;
+      workerReady = true;
+    } catch {
+      _wasmWorkerInitPromise = null;
+      if (_wasmWorker) {
+        _wasmWorker.terminate();
+        _wasmWorker = null;
+      }
+      if (_wasmWorkerUrl) {
+        URL.revokeObjectURL(_wasmWorkerUrl);
+        _wasmWorkerUrl = null;
+      }
+    }
+  }
+
+  if (!workerReady) {
+    const mod = (await import(
+      /* @vite-ignore */ TRANSFORMERS_ESM_URL
+    )) as TransformersModule;
+
+    _wasmPipeline = await mod.pipeline('text-generation', wasmModel, {
+      dtype: 'q4', // int4 quantisation — smallest footprint (~350 MB)
+      progress_callback: ({ status, progress, file }) => {
+        if (status === 'progress' && progress !== undefined) {
+          cfg.onProgress(
+            Math.round(progress),
+            `Downloading ${file ?? wasmModel} — ${Math.round(progress)}%`,
+          );
+        }
+      },
+    });
+  }
 
   _backend = 'wasm';
   _loadedModel = wasmModel;
@@ -383,6 +661,14 @@ async function loadWASMBackend(cfg: Required<ZenConfig>): Promise<void> {
 export async function initZenEngine(
   onStatusChange?: (s: ZenStatus) => void,
 ): Promise<void> {
+  _ensurePrefetchHints();
+  const cfg = ScriptureConfigSingleton.zen;
+  if (cfg.provider === 'custom') {
+    _status = 'ready';
+    onStatusChange?.('ready');
+    return;
+  }
+
   // Already initialised
   if (_backend !== null && (_webllmEngine !== null || _wasmPipeline !== null)) {
     onStatusChange?.('ready');
@@ -400,8 +686,6 @@ export async function initZenEngine(
 
   _status = 'loading-model';
   onStatusChange?.('loading-model');
-
-  const cfg = ScriptureConfigSingleton.zen;
 
   _enginePromise = (async () => {
     const gpuAvailable = await hasWebGPU();
@@ -459,7 +743,8 @@ export async function explainVerse(
   verse: ResolvedVerse,
   onStatusChange?: (s: ZenStatus) => void,
 ): Promise<ZenExplanation> {
-  if (!ScriptureConfigSingleton.zen.enabled) {
+  const zenCfg = ScriptureConfigSingleton.zen;
+  if (!zenCfg.enabled) {
     throw new ScriptureError(
       'ZEN_NOT_AVAILABLE',
       'Zen mode is not enabled. Set zen.enabled = true in ScriptureConfigure().',
@@ -468,21 +753,21 @@ export async function explainVerse(
 
   // Serve from cache
   const key = cacheKey(verse);
-  if (_cache.has(key)) {
-    const cached = _cache.get(key)!;
+  const cached = _readCache(key);
+  if (cached !== null) {
     const sanitized = _postProcessExplanation(cached);
     if (sanitized && sanitized !== cached) {
-      _cache.set(key, sanitized);
+      _writeCache(key, sanitized);
     }
     return {
       verse,
       explanation: sanitized || cached,
-      model: _loadedModel ?? ScriptureConfigSingleton.zen.model,
+      model:
+        zenCfg.provider === 'custom'
+          ? 'custom-provider'
+          : (_loadedModel ?? zenCfg.model),
     };
   }
-
-  // Ensure engine is loaded
-  await initZenEngine(onStatusChange);
 
   _status = 'generating';
   onStatusChange?.('generating');
@@ -491,17 +776,43 @@ export async function explainVerse(
     ? `${verse.book} ${verse.chapter}:${verse.verse}`
     : `${verse.source} ${verse.chapter}:${verse.verse}`;
 
-  const systemPrompt = ScriptureConfigSingleton.zen.systemPrompt;
+  const systemPrompt = zenCfg.systemPrompt;
   const userPrompt = `Explain this scripture verse from ${ref} (${verse.meta.version}):\n\n"${verse.text}"`;
 
   try {
-    let explanation = await _generateWithBackend(
-      systemPrompt,
-      userPrompt,
-      'balanced',
-    );
+    let explanation = '';
 
-    if (_isPoorQualityExplanation(verse.text, explanation)) {
+    if (zenCfg.provider === 'custom') {
+      if (!zenCfg.customProvider) {
+        throw new ScriptureError(
+          'ZEN_LOAD_FAILED',
+          'zen.provider is "custom" but zen.customProvider is not set.',
+        );
+      }
+
+      const providerRequest: ZenProviderRequest = {
+        verse,
+        reference: ref,
+        systemPrompt,
+        userPrompt,
+      };
+      explanation = String(
+        (await zenCfg.customProvider(providerRequest)) || '',
+      );
+    } else {
+      // Ensure local engine is loaded
+      await initZenEngine(onStatusChange);
+      explanation = await _generateWithBackend(
+        systemPrompt,
+        userPrompt,
+        'balanced',
+      );
+    }
+
+    if (
+      zenCfg.provider !== 'custom' &&
+      _isPoorQualityExplanation(verse.text, explanation)
+    ) {
       const retryPrompt =
         `Your previous answer was low quality (repetitive, incomplete, or too close to the verse). ` +
         `Rewrite it as one compact paragraph of exactly 7-10 complete sentences. ` +
@@ -547,15 +858,22 @@ export async function explainVerse(
 
     explanation = _postProcessExplanation(explanation);
 
-    if (_isPoorQualityExplanation(verse.text, explanation)) {
+    if (
+      zenCfg.provider !== 'custom' &&
+      _isPoorQualityExplanation(verse.text, explanation)
+    ) {
       explanation = _buildSafeFallbackExplanation(verse, ref);
     }
 
-    _cache.set(key, explanation);
+    _writeCache(key, explanation);
     _status = 'ready';
     onStatusChange?.('ready');
 
-    return { verse, explanation, model: _loadedModel! };
+    return {
+      verse,
+      explanation,
+      model: zenCfg.provider === 'custom' ? 'custom-provider' : _loadedModel!,
+    };
   } catch (err) {
     _status = 'error';
     onStatusChange?.('error');
@@ -610,7 +928,22 @@ async function _runWASM(
   // Transformers.js uses chat-template formatted messages
   const prompt = `<|im_start|>system\n${system}<|im_end|>\n<|im_start|>user\n${user}<|im_end|>\n<|im_start|>assistant\n`;
 
-  const output = await _wasmPipeline!(prompt, {
+  if (_wasmWorker) {
+    const id = _wasmWorkerRequestId++;
+    const result = await _postToWasmWorker({
+      type: 'generate',
+      id,
+      prompt,
+      strict,
+    });
+    return String(result ?? '').trim();
+  }
+
+  if (!_wasmPipeline) {
+    throw new Error('WASM backend is not initialised');
+  }
+
+  const output = await _wasmPipeline(prompt, {
     max_new_tokens: strict ? 320 : 360,
     temperature: strict ? 0.2 : 0.45,
     do_sample: !strict,
@@ -642,6 +975,32 @@ export function getZenBackend(): ZenBackend {
   return _backend;
 }
 
+export function hintZenAssetPrefetch(): void {
+  _ensurePrefetchHints();
+}
+
+export function scheduleZenIdlePrewarm(): void {
+  if (_idlePrewarmScheduled) return;
+  if (!ScriptureConfigSingleton.zen.enabled) return;
+  _idlePrewarmScheduled = true;
+  _ensurePrefetchHints();
+
+  const run = () => {
+    void initZenEngine().catch(() => {
+      // best-effort only
+    });
+  };
+
+  const g = globalThis as unknown as {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => any;
+  };
+  if (typeof g.requestIdleCallback === 'function') {
+    g.requestIdleCallback(run, { timeout: 2500 });
+    return;
+  }
+  setTimeout(run, 800);
+}
+
 /** Clear engine state — forces re-initialisation on next use */
 export function resetZenEngine(): void {
   _webllmEngine = null;
@@ -651,6 +1010,20 @@ export function resetZenEngine(): void {
   _backend = null;
   _status = 'idle';
   _cache.clear();
+  _wasmWorkerInitPromise = null;
+  _idlePrewarmScheduled = false;
+  for (const [, pending] of _wasmWorkerPending) {
+    pending.reject(new Error('Zen engine reset'));
+  }
+  _wasmWorkerPending.clear();
+  if (_wasmWorker) {
+    _wasmWorker.terminate();
+    _wasmWorker = null;
+  }
+  if (_wasmWorkerUrl) {
+    URL.revokeObjectURL(_wasmWorkerUrl);
+    _wasmWorkerUrl = null;
+  }
   try {
     (globalThis as any).__SCRIPTURE_CITE_ZEN_READY = false;
   } catch (e) {}

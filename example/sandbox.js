@@ -12,6 +12,13 @@ import('../dist/scripture-cite.js')
     const samplesEl = document.getElementById('samples');
     const modeSel = document.getElementById('mode');
     const zenChk = document.getElementById('zen');
+    const zenProvider = document.getElementById('zenProvider');
+    const customZenProviderEditor = document.getElementById(
+      'customZenProviderEditor',
+    );
+    const customZenProviderFallback = document.getElementById(
+      'customZenProviderFallback',
+    );
     const accent = document.getElementById('accent');
     const loadDefaults = document.getElementById('loadDefaults');
     const applyBtn = document.getElementById('apply');
@@ -50,10 +57,11 @@ import('../dist/scripture-cite.js')
     let defaultSettingsSnapshot = null;
     let loadedSettingsSnapshot = null;
     let statusHideTimer = null;
+    let customZenEditor = null;
+    let customZenEditorInitPromise = null;
 
     function getResponsiveTooltipWidthFallback() {
-      const viewport =
-        typeof window !== 'undefined' ? window.innerWidth : 1024;
+      const viewport = typeof window !== 'undefined' ? window.innerWidth : 1024;
       return Math.max(220, Math.min(420, viewport - 24));
     }
 
@@ -104,6 +112,120 @@ import('../dist/scripture-cite.js')
 
     function setZenPreview(html) {
       if (zenPreview) zenPreview.innerHTML = html;
+    }
+
+    function defaultCustomProviderSource() {
+      return `async (request) => {
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'qwen2.5-coder:3b',
+      prompt: request.userPrompt,
+      stream: false,
+    }),
+  });
+
+  const json = await response.json();
+  return String(json?.response ?? json?.text ?? '').trim();
+}`;
+    }
+
+    function getCustomZenProviderSource() {
+      const liveValue = customZenEditor?.state?.doc?.toString?.()?.trim();
+      if (liveValue) return liveValue;
+      const fallbackValue = customZenProviderFallback?.value?.trim();
+      return fallbackValue || defaultCustomProviderSource();
+    }
+
+    function setCustomZenProviderSource(source) {
+      const value = String(source || '').trim() || defaultCustomProviderSource();
+      if (customZenEditor?.dispatch) {
+        const current = customZenEditor.state.doc.toString();
+        if (current !== value) {
+          customZenEditor.dispatch({
+            changes: { from: 0, to: current.length, insert: value },
+          });
+        }
+        return;
+      }
+      if (customZenProviderFallback) {
+        customZenProviderFallback.value = value;
+      }
+    }
+
+    async function ensureCustomZenEditor() {
+      if (customZenEditor || customZenEditorInitPromise) return customZenEditorInitPromise;
+
+      customZenEditorInitPromise = (async () => {
+        if (!customZenProviderEditor) return null;
+
+        try {
+          const [{ EditorState }, { EditorView, keymap, drawSelection }, { javascript }]
+            = await Promise.all([
+              import('https://esm.sh/@codemirror/state@6'),
+              import('https://esm.sh/@codemirror/view@6'),
+              import('https://esm.sh/@codemirror/lang-javascript@6'),
+            ]);
+
+          customZenProviderEditor.innerHTML = '';
+          customZenEditor = new EditorView({
+            state: EditorState.create({
+              doc: customZenProviderFallback?.value?.trim() || defaultCustomProviderSource(),
+              extensions: [
+                keymap.of([]),
+                drawSelection(),
+                javascript(),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  '&': {
+                    height: '100%',
+                    backgroundColor: '#0f1220',
+                    color: '#f4f7ff',
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
+                    fontSize: '13px',
+                  },
+                  '.cm-scroller': {
+                    fontFamily:
+                      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
+                  },
+                  '.cm-content': {
+                    padding: '14px',
+                    minHeight: '220px',
+                  },
+                  '.cm-gutters': {
+                    backgroundColor: '#0d1020',
+                    color: '#7d87a8',
+                    border: 'none',
+                  },
+                  '.cm-cursor, .cm-dropCursor': {
+                    borderLeftColor: '#f4f7ff',
+                  },
+                  '&.cm-focused': {
+                    outline: '2px solid #8b6914',
+                    outlineOffset: '2px',
+                  },
+                }),
+              ],
+            }),
+            parent: customZenProviderEditor,
+          });
+          customZenProviderFallback?.setAttribute('hidden', 'true');
+          return customZenEditor;
+        } catch (error) {
+          customZenEditor = null;
+          if (customZenProviderFallback) {
+            customZenProviderFallback.removeAttribute('hidden');
+            customZenProviderFallback.value =
+              customZenProviderFallback.value.trim() || defaultCustomProviderSource();
+          }
+          showStatus('Code editor failed to load; using textarea fallback.', 'error');
+          return null;
+        }
+      })();
+
+      return customZenEditorInitPromise;
     }
 
     function syncZenPromptFromEditor() {
@@ -336,6 +458,8 @@ import('../dist/scripture-cite.js')
           inlineColor: theme.inlineColor,
           loadDefaults: !!cfgSingleton.loadDefaults,
           zenEnabled: !!zenCfg.enabled,
+          zenProvider: zenCfg.provider || 'local',
+          customZenProvider: getCustomZenProviderSource(),
           zenSystemPrompt: zenCfg.systemPrompt || '',
         };
       } catch (e) {
@@ -363,8 +487,14 @@ import('../dist/scripture-cite.js')
         inlineColor.value = snapshot.inlineColor;
       if (loadDefaults) loadDefaults.checked = !!snapshot.loadDefaults;
       if (zenChk) zenChk.checked = !!snapshot.zenEnabled;
+      if (zenProvider)
+        zenProvider.value =
+          snapshot.zenProvider || zenProvider.value || 'local';
       if (snapshot.zenSystemPrompt)
         setZenPromptHtml(plainTextToHtml(snapshot.zenSystemPrompt));
+      if (customZenProvider && snapshot.customZenProvider) {
+        setCustomZenProviderSource(snapshot.customZenProvider);
+      }
 
       refreshBibleOptions({
         book: snapshot.bibleBook,
@@ -395,7 +525,9 @@ import('../dist/scripture-cite.js')
         inlineColor: inlineColor?.value || '',
         loadDefaults: !!loadDefaults?.checked,
         zenEnabled: !!zenChk?.checked,
+        zenProvider: zenProvider?.value || 'local',
         zenSystemPrompt: getZenPromptText(),
+        customZenProvider: getCustomZenProviderSource(),
         bibleBook: bibleBook?.value || 'john',
         bibleChapter: bibleChapter?.value || '3',
         bibleVerse: bibleVerse?.value || '16',
@@ -465,6 +597,16 @@ import('../dist/scripture-cite.js')
       }
     }
 
+    async function initCustomZenProviderEditor() {
+      await ensureCustomZenEditor();
+      if (!customZenEditor && customZenProviderFallback) {
+        customZenProviderFallback.removeAttribute('hidden');
+        if (!customZenProviderFallback.value.trim()) {
+          customZenProviderFallback.value = defaultCustomProviderSource();
+        }
+      }
+    }
+
     function createSampleElements(mode, zen) {
       const created = [];
       samplesEl.innerHTML = '';
@@ -488,6 +630,7 @@ import('../dist/scripture-cite.js')
     }
 
     function recreatePreviewFromControls() {
+      document.getElementById('scripture-cite-portal')?.remove();
       createSampleElements(modeSel.value, zenChk.checked);
       showStatus('Preview updated from selected verses.', 'success');
     }
@@ -524,6 +667,40 @@ import('../dist/scripture-cite.js')
       const tooltipWidthValue = tooltipMaxWidth?.value
         ? `${tooltipMaxWidth.value}px`
         : undefined;
+      const providerMode = zenProvider?.value === 'custom' ? 'custom' : 'local';
+      const modelName = 'qwen2.5-coder:3b';
+
+      function compileCustomProvider(source) {
+        const trimmed = String(source || '').trim();
+        if (!trimmed) {
+          throw new Error('Custom provider function is empty');
+        }
+
+        const fn = (0, eval)(`(${trimmed})`); // sandbox-only editable provider
+        if (typeof fn !== 'function') {
+          throw new Error('Custom provider must evaluate to a function');
+        }
+
+        return fn;
+      }
+
+      const customProvider =
+        providerMode === 'custom'
+          ? async (request) => {
+              showStatus('Running custom Zen provider…', 'info');
+              const providerFn = compileCustomProvider(
+                getCustomZenProviderSource(),
+              );
+              const result = await providerFn(request);
+              const explanation = String(result ?? '').trim();
+              if (!explanation) {
+                throw new Error('Custom provider returned an empty response');
+              }
+              showStatus('Custom Zen provider returned an explanation.', 'success');
+              return explanation;
+            }
+          : null;
+
       const cfg = {
         defaultMode: modeSel.value,
         theme: {
@@ -533,7 +710,14 @@ import('../dist/scripture-cite.js')
           inlineColor: inlineColor?.value,
           tooltipMaxWidth: tooltipWidthValue,
         },
-        zen: { enabled: !!zenChk.checked, systemPrompt: currentZenPrompt },
+        zen: {
+          enabled: !!zenChk.checked,
+          provider: providerMode,
+          customProvider: providerMode === 'custom' ? customProvider : null,
+          systemPrompt: currentZenPrompt,
+          cacheMaxEntries: 200,
+          cacheTtlMs: 1000 * 60 * 60 * 6,
+        },
         loadDefaults: loadDefaults.checked ? true : undefined,
       };
 
@@ -560,6 +744,7 @@ import('../dist/scripture-cite.js')
       }
 
       // Recreate example elements so mode/zen reflect the new config
+      document.getElementById('scripture-cite-portal')?.remove();
       const created = createSampleElements(modeSel.value, zenChk.checked);
       const outcomesPromise = waitForSamplesSettled(created);
       await ScriptureReady();
@@ -584,6 +769,8 @@ import('../dist/scripture-cite.js')
     const tooltipControls = document.getElementById('tooltipControls');
     const inlineControls = document.getElementById('inlineControls');
     const zenControls = document.getElementById('zenControls');
+    const zenCustomControls = document.getElementById('zenCustomControls');
+    const zenPromptShell = zenControls?.querySelector('.prompt-shell');
 
     function updateControlVisibility() {
       const mode = modeSel.value;
@@ -592,10 +779,17 @@ import('../dist/scripture-cite.js')
       if (inlineControls)
         inlineControls.style.display = mode === 'inline' ? '' : 'none';
       if (zenControls) zenControls.style.display = zenChk.checked ? '' : 'none';
+      const custom = zenProvider?.value === 'custom';
+      if (zenCustomControls)
+        zenCustomControls.style.display =
+          zenChk.checked && custom ? '' : 'none';
+      if (zenPromptShell)
+        zenPromptShell.style.display = zenChk.checked ? '' : 'none';
     }
 
     modeSel.addEventListener('change', updateControlVisibility);
     zenChk.addEventListener('change', updateControlVisibility);
+    zenProvider?.addEventListener('change', updateControlVisibility);
 
     await loadScriptureChoices();
     refreshBibleOptions();
@@ -628,6 +822,7 @@ import('../dist/scripture-cite.js')
     loadedSettingsSnapshot = captureCurrentSettingsSnapshot();
 
     initZenEditor();
+    await initCustomZenProviderEditor();
 
     // Capture the actual default state after the editor is initialised so
     // reset can restore the original values, including the default prompt.

@@ -20,6 +20,8 @@ export type {
   ScriptureConfig,
   ScriptureTheme,
   ZenConfig,
+  ZenProviderRequest,
+  ZenExplanationProvider,
   ZenStatus,
   ZenExplanation,
   RegistryEntry,
@@ -101,6 +103,16 @@ export async function resetZenEngine(): Promise<void> {
 export async function clearZenCache(): Promise<void> {
   const mod = await import('./zen/zen-mode.js');
   mod.clearZenCache();
+}
+
+export async function scheduleZenIdlePrewarm(): Promise<void> {
+  const mod = await import('./zen/zen-mode.js');
+  mod.scheduleZenIdlePrewarm();
+}
+
+export async function hintZenAssetPrefetch(): Promise<void> {
+  const mod = await import('./zen/zen-mode.js');
+  mod.hintZenAssetPrefetch();
 }
 
 // ── Public API sugar ──────────────────────────────────────────

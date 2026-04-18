@@ -54,9 +54,21 @@ export interface ScriptureCiteAttributes {
   verse: string;
   mode?: 'inline' | 'tooltip';
   zen?: boolean;
+  related?: boolean | '1' | '2';
   loading?: 'eager' | 'lazy';
   'no-ref'?: boolean;
 }
+
+export interface ZenProviderRequest {
+  verse: ResolvedVerse;
+  reference: string;
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+export type ZenExplanationProvider = (
+  request: ZenProviderRequest,
+) => Promise<string> | string;
 
 // ── Global Configuration ────────────────────────────────────
 
@@ -105,6 +117,14 @@ export interface ZenConfig {
   webLLMCdn?: string;
   /** Called during model download with (percentComplete 0–100, statusText) */
   onProgress?: (progress: number, text: string) => void;
+  /** Explanation provider mode: local model (default) or custom provider callback */
+  provider?: 'local' | 'custom';
+  /** Custom explanation provider callback (for API-backed or static responses) */
+  customProvider?: ZenExplanationProvider | null;
+  /** Max number of cached zen explanations in memory */
+  cacheMaxEntries?: number;
+  /** Cache TTL in milliseconds */
+  cacheTtlMs?: number;
 }
 
 export interface ScriptureConfig {

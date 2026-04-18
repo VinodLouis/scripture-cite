@@ -14,6 +14,35 @@ let __sc_portal_listeners: {
   enter: EventListener;
   leave: EventListener;
 } | null = null;
+let __sc_idle_zen_hooked = false;
+
+function scheduleGlobalZenWarmupOnFirstInteraction(): void {
+  if (__sc_idle_zen_hooked || typeof document === 'undefined') return;
+  __sc_idle_zen_hooked = true;
+
+  const kickoff = () => {
+    cleanup();
+    void import('./zen/zen-mode.js')
+      .then((mod) => {
+        mod.hintZenAssetPrefetch();
+        mod.scheduleZenIdlePrewarm();
+      })
+      .catch(() => {
+        // best effort
+      });
+  };
+
+  const cleanup = () => {
+    document.removeEventListener('pointerdown', kickoff, opts);
+    document.removeEventListener('focusin', kickoff, opts);
+    document.removeEventListener('mouseenter', kickoff, opts);
+  };
+
+  const opts: AddEventListenerOptions = { once: true, capture: true };
+  document.addEventListener('pointerdown', kickoff, opts);
+  document.addEventListener('focusin', kickoff, opts);
+  document.addEventListener('mouseenter', kickoff, opts);
+}
 
 const SC_THEME_VARS = [
   '--sc-accent',
@@ -59,6 +88,63 @@ const PORTAL_STYLES = /* css */ `
   word-break: break-word !important;
 }
 .sc-tooltip-ref { display:block !important; font-family: var(--sc-ref-font, system-ui, sans-serif) !important; font-style: normal !important; font-size: 0.76em !important; color: var(--sc-accent,#8b6914) !important; font-weight:600 !important; margin-top:8px !important; letter-spacing:0.04em !important; text-transform:uppercase !important; }
+.sc-zen-panel {
+  margin-top: 10px !important;
+}
+.sc-zen-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-top: 10px !important;
+  padding: 2px 6px !important;
+  background: transparent !important;
+  border: 1px solid var(--sc-accent, #8b6914) !important;
+  border-radius: calc(var(--sc-radius, 8px) * 0.6) !important;
+  color: var(--sc-accent, #8b6914) !important;
+  font-size: 0.56em !important;
+  line-height: 1 !important;
+  font-family: var(--sc-ref-font, system-ui, sans-serif) !important;
+  letter-spacing: 0.015em !important;
+  cursor: pointer !important;
+}
+.sc-zen-btn:hover {
+  background: var(--sc-accent, #8b6914) !important;
+  color: var(--sc-tooltip-bg, #1a1208) !important;
+}
+.sc-zen-hint {
+  margin-top: 6px !important;
+  font-size: 0.72em !important;
+  line-height: 1.4 !important;
+  font-style: normal !important;
+  font-family: var(--sc-ref-font, system-ui, sans-serif) !important;
+  color: var(--sc-accent, #8b6914) !important;
+  opacity: 0.9 !important;
+}
+.sc-zen-progress {
+  font-size: 0.68em !important;
+  font-style: normal !important;
+  font-family: var(--sc-ref-font, system-ui, sans-serif) !important;
+  color: var(--sc-accent, #8b6914) !important;
+  margin-top: 6px !important;
+}
+.sc-zen-dots {
+  display: inline-flex !important;
+  gap: 3px !important;
+  margin-left: 4px !important;
+  vertical-align: middle !important;
+}
+.sc-zen-dots span {
+  display: inline-block !important;
+  opacity: 0.25;
+  animation: sc-dot-blink 1s infinite ease-in-out !important;
+}
+.sc-zen-dots span:nth-child(2) { animation-delay: 0.12s !important; }
+.sc-zen-dots span:nth-child(3) { animation-delay: 0.24s !important; }
+@keyframes sc-dot-blink {
+  0%, 20% { opacity: 0.25; }
+  50% { opacity: 1; }
+  100% { opacity: 0.25; }
+}
 /* Arrow: inline SVG triangle to ensure crisp rendering */
 .sc-arrow {
   position: absolute !important;
@@ -275,6 +361,12 @@ const STYLES = /* css */ `
     40% { transform: scale(1); opacity: 1; }
   }
 
+  @keyframes sc-dot-blink {
+    0%, 20% { opacity: 0.25; }
+    50% { opacity: 1; }
+    100% { opacity: 0.25; }
+  }
+
   /* ── Error ───────────────────────────────── */
   .sc-error {
     color: #c0392b;
@@ -289,17 +381,24 @@ const STYLES = /* css */ `
     align-items: center;
     gap: 4px;
     margin-top: 10px;
-    padding: 5px 10px;
+    padding: 4px 9px;
     background: transparent;
     border: 1px solid var(--sc-accent, #8b6914);
     border-radius: calc(var(--sc-radius, 8px) * 0.6);
     color: var(--sc-accent, #8b6914);
-    font-size: 0.72em;
+    font-size: 0.68em;
     font-family: var(--sc-ref-font, system-ui, sans-serif);
     cursor: pointer;
     transition: background var(--sc-anim, 200ms), color var(--sc-anim, 200ms);
     letter-spacing: 0.04em;
     pointer-events: auto;
+  }
+
+  .sc-zen-panel .sc-zen-btn {
+    padding: 2px 6px;
+    font-size: 0.56em;
+    letter-spacing: 0.015em;
+    line-height: 1;
   }
 
   .sc-inline-zen {
@@ -329,11 +428,13 @@ const STYLES = /* css */ `
 
   .sc-inline-zen-body .sc-zen-explanation {
     margin-top: 0;
-    padding: 8px 10px;
+    padding: 7px 9px;
     border-top: 0;
     border-radius: calc(var(--sc-radius, 8px) * 0.6);
     background: var(--sc-inline-bg, #fdf6e3);
     color: var(--sc-inline-color, #3d2b00);
+    font-size: 0.8em;
+    line-height: 1.5;
   }
 
   .sc-zen-btn:hover {
@@ -360,18 +461,66 @@ const STYLES = /* css */ `
     padding-top: 10px;
     border-top: 1px solid rgba(255,255,255,0.12);
     font-style: normal;
-    font-size: 0.88em;
-    line-height: 1.6;
+    font-size: 0.8em;
+    line-height: 1.5;
     color: var(--sc-tooltip-color, #f5e6c8);
     opacity: 0.9;
   }
 
   .sc-zen-progress {
-    font-size: 0.72em;
+    font-size: 0.68em;
     font-style: normal;
     font-family: var(--sc-ref-font, system-ui, sans-serif);
     color: var(--sc-accent, #8b6914);
     margin-top: 6px;
+  }
+
+  .sc-zen-dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .sc-zen-dots span {
+    display: inline-block;
+    opacity: 0.25;
+    animation: sc-dot-blink 1s infinite ease-in-out;
+  }
+
+  .sc-zen-dots span:nth-child(2) { animation-delay: 0.12s; }
+  .sc-zen-dots span:nth-child(3) { animation-delay: 0.24s; }
+
+  .sc-related {
+    margin-top: 10px;
+    font-style: normal;
+    font-family: var(--sc-ref-font, system-ui, sans-serif);
+    font-size: 0.76em;
+    line-height: 1.5;
+    color: var(--sc-tooltip-color, #f5e6c8);
+    opacity: 0.92;
+  }
+
+  .sc-related-title {
+    display: block;
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sc-accent, #8b6914);
+    font-weight: 600;
+  }
+
+  .sc-related-list {
+    margin: 0;
+    padding: 0 0 0 1em;
+  }
+
+  .sc-inline-related {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--sc-inline-color, #3d2b00);
+    font-size: 0.8em;
   }
 `;
 
@@ -413,6 +562,9 @@ export class ScriptureCiteElement extends HTMLElement {
   private _isOpen = false;
   private _abortController: AbortController | null = null;
   private _zenPrimePromise: Promise<void> | null = null;
+  private _layoutRafId: number | null = null;
+  private _portalResizeObserver: ResizeObserver | null = null;
+  private _triggerResizeObserver: ResizeObserver | null = null;
 
   /**
    * Tracks whether attributeChangedCallback fired before connectedCallback.
@@ -441,6 +593,7 @@ export class ScriptureCiteElement extends HTMLElement {
   // ── Lifecycle ──────────────────────────────────────────────
 
   connectedCallback(): void {
+    scheduleGlobalZenWarmupOnFirstInteraction();
     // Flush any attribute changes buffered during the upgrade/parse race.
     this._pendingAttributeChange = false;
     this._init();
@@ -449,6 +602,7 @@ export class ScriptureCiteElement extends HTMLElement {
   disconnectedCallback(): void {
     this._abortController?.abort();
     this._removeTooltipListeners();
+    this._detachLayoutObservers();
   }
 
   attributeChangedCallback(): void {
@@ -1137,6 +1291,9 @@ export class ScriptureCiteElement extends HTMLElement {
       } catch (e) {}
     };
 
+    this._attachLayoutObservers(trigger, pWrap);
+    this._schedulePortalLayout();
+
     ScriptureCiteElement._currentOpen = this;
   }
 
@@ -1166,6 +1323,7 @@ export class ScriptureCiteElement extends HTMLElement {
       __sc_portal_el.innerHTML = '';
       __sc_portal_listeners = null;
     }
+    this._detachLayoutObservers();
     if (ScriptureCiteElement._currentOpen === this)
       ScriptureCiteElement._currentOpen = null;
   }
@@ -1207,7 +1365,130 @@ export class ScriptureCiteElement extends HTMLElement {
     wrap.style.opacity = '';
   }
 
+  private _schedulePortalLayout(): void {
+    if (!this._isOpen) return;
+    if (this._layoutRafId !== null) cancelAnimationFrame(this._layoutRafId);
+    this._layoutRafId = requestAnimationFrame(() => {
+      this._layoutRafId = null;
+      this._repositionPortalTooltip();
+    });
+  }
+
+  private _repositionPortalTooltip(): void {
+    const pWrap =
+      __sc_portal_el?.querySelector<HTMLElement>('.sc-tooltip-wrap');
+    const trigger = this._shadow.querySelector<HTMLElement>('.sc-trigger');
+    if (!pWrap || !trigger) return;
+
+    const trigRect = trigger.getBoundingClientRect();
+    const wrapRect = pWrap.getBoundingClientRect();
+    const gap = 10;
+    const pad = 8;
+    const placement =
+      (pWrap.getAttribute('data-placement') as
+        | 'top'
+        | 'bottom'
+        | 'left'
+        | 'right'
+        | null) ?? 'top';
+
+    if (placement === 'top' || placement === 'bottom') {
+      const centerX = trigRect.left + trigRect.width / 2;
+      const clampedCenter = Math.min(
+        Math.max(Math.round(centerX), pad + Math.round(wrapRect.width / 2)),
+        window.innerWidth - pad - Math.round(wrapRect.width / 2),
+      );
+      pWrap.style.left = `${clampedCenter}px`;
+
+      let topPos =
+        placement === 'top'
+          ? Math.round(trigRect.top - wrapRect.height - gap)
+          : Math.round(trigRect.bottom + gap);
+      const minTop = pad;
+      const maxTop = window.innerHeight - pad - Math.round(wrapRect.height);
+      topPos = Math.min(Math.max(topPos, minTop), Math.max(minTop, maxTop));
+      pWrap.style.top = `${topPos}px`;
+    } else {
+      let leftPos =
+        placement === 'left'
+          ? Math.round(trigRect.left - wrapRect.width - gap)
+          : Math.round(trigRect.right + gap);
+      leftPos = Math.min(
+        Math.max(leftPos, pad),
+        window.innerWidth - pad - Math.round(wrapRect.width),
+      );
+      pWrap.style.left = `${leftPos}px`;
+
+      let topPos = Math.round(
+        trigRect.top + (trigRect.height - wrapRect.height) / 2,
+      );
+      const minTop = pad;
+      const maxTop = window.innerHeight - pad - Math.round(wrapRect.height);
+      topPos = Math.min(Math.max(topPos, minTop), Math.max(minTop, maxTop));
+      pWrap.style.top = `${topPos}px`;
+    }
+
+    try {
+      const bridge = document.getElementById('scripture-cite-bridge');
+      if (bridge) {
+        const wrapFinal = pWrap.getBoundingClientRect();
+        const bLeft = Math.min(trigRect.left, wrapFinal.left);
+        const bTop = Math.min(trigRect.top, wrapFinal.top);
+        const bRight = Math.max(trigRect.right, wrapFinal.right);
+        const bBottom = Math.max(trigRect.bottom, wrapFinal.bottom);
+        const padBridge = 8;
+        bridge.style.left = `${Math.floor(bLeft - padBridge)}px`;
+        bridge.style.top = `${Math.floor(bTop - padBridge)}px`;
+        bridge.style.width = `${Math.ceil(bRight - bLeft + padBridge * 2)}px`;
+        bridge.style.height = `${Math.ceil(bBottom - bTop + padBridge * 2)}px`;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private _attachLayoutObservers(
+    trigger: HTMLElement,
+    pWrap: HTMLElement,
+  ): void {
+    this._detachLayoutObservers();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this._triggerResizeObserver = new ResizeObserver(() => {
+        this._schedulePortalLayout();
+      });
+      this._portalResizeObserver = new ResizeObserver(() => {
+        this._schedulePortalLayout();
+      });
+      this._triggerResizeObserver.observe(trigger);
+      this._portalResizeObserver.observe(pWrap);
+    }
+
+    window.addEventListener('resize', this._onViewportLayoutChange);
+    window.addEventListener('scroll', this._onViewportLayoutChange, true);
+  }
+
+  private _detachLayoutObservers(): void {
+    if (this._layoutRafId !== null) {
+      cancelAnimationFrame(this._layoutRafId);
+      this._layoutRafId = null;
+    }
+    if (this._triggerResizeObserver) {
+      this._triggerResizeObserver.disconnect();
+      this._triggerResizeObserver = null;
+    }
+    if (this._portalResizeObserver) {
+      this._portalResizeObserver.disconnect();
+      this._portalResizeObserver = null;
+    }
+    window.removeEventListener('resize', this._onViewportLayoutChange);
+    window.removeEventListener('scroll', this._onViewportLayoutChange, true);
+  }
+
   private _hoverTimer: ReturnType<typeof setTimeout> | null = null;
+  private _onViewportLayoutChange = (): void => {
+    this._schedulePortalLayout();
+  };
 
   private _onMouseEnter = (): void => {
     if (this._hoverTimer) clearTimeout(this._hoverTimer);
@@ -1286,13 +1567,39 @@ export class ScriptureCiteElement extends HTMLElement {
     if (hint) hint.textContent = text;
   }
 
+  private _setZenProgress(
+    container: HTMLElement,
+    status: 'loading-model' | 'generating' | 'ready' | 'error',
+  ): void {
+    const el = container.querySelector<HTMLElement>('.sc-zen-progress');
+    if (!el) return;
+
+    const labels: Record<typeof status, string> = {
+      'loading-model': 'Downloading model (first time only)',
+      generating: 'Generating explanation',
+      ready: 'Generating explanation',
+      error: 'Error loading model',
+    };
+    if (status === 'generating' || status === 'ready') {
+      el.innerHTML = `${escapeHtml(labels[status])}<span class="sc-zen-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>`;
+      el.dataset.status = status;
+      return;
+    }
+
+    el.textContent = labels[status];
+    delete el.dataset.status;
+  }
+
   private async _primeZen(): Promise<void> {
     if (!this._zenEnabled) return;
     if (this._zenPrimePromise) return this._zenPrimePromise;
 
     this._zenPrimePromise = (async () => {
       this._setZenHint('Preparing Zen model…');
-      const { initZenEngine } = await import('./zen/zen-mode.js');
+      const { initZenEngine, hintZenAssetPrefetch, scheduleZenIdlePrewarm } =
+        await import('./zen/zen-mode.js');
+      hintZenAssetPrefetch();
+      scheduleZenIdlePrewarm();
       await initZenEngine((status) => {
         const labels: Record<string, string> = {
           'loading-model': 'Downloading model…',
@@ -1330,22 +1637,27 @@ export class ScriptureCiteElement extends HTMLElement {
 
     void this._primeZen();
     container.innerHTML = /* html */ `<p class="sc-zen-progress">Loading model…</p>`;
+    this._setZenProgress(container, 'generating');
 
     try {
       // Dynamic import to keep zen optional
       const { explainVerse } = await import('./zen/zen-mode.js');
+      const startedAt = performance.now();
       const result = await explainVerse(this._verse, (status) => {
-        const el = container.querySelector<HTMLElement>('.sc-zen-progress');
-        if (el) {
-          const labels: Record<string, string> = {
-            'loading-model': 'Downloading model (first time only)…',
-            generating: 'Generating explanation…',
-            ready: 'Done',
-            error: 'Error loading model',
-          };
-          el.textContent = labels[status] ?? status;
+        if (
+          status === 'loading-model' ||
+          status === 'generating' ||
+          status === 'ready' ||
+          status === 'error'
+        ) {
+          this._setZenProgress(container, status);
         }
       });
+
+      const elapsedMs = performance.now() - startedAt;
+      if (elapsedMs < 900) {
+        await new Promise((resolve) => setTimeout(resolve, 900 - elapsedMs));
+      }
 
       this._zenExplanation = result.explanation;
       container.innerHTML = this._renderZenExplanation(result.explanation);
@@ -1393,21 +1705,26 @@ export class ScriptureCiteElement extends HTMLElement {
     btn.disabled = true;
     btn.textContent = '✦ Loading…';
     body.innerHTML = /* html */ `<p class="sc-zen-progress">Loading model…</p>`;
+    this._setZenProgress(body, 'generating');
 
     try {
       const { explainVerse } = await import('./zen/zen-mode.js');
+      const startedAt = performance.now();
       const result = await explainVerse(this._verse, (status) => {
-        const el = body.querySelector<HTMLElement>('.sc-zen-progress');
-        if (el) {
-          const labels: Record<string, string> = {
-            'loading-model': 'Downloading model (first time only)…',
-            generating: 'Generating explanation…',
-            ready: 'Done',
-            error: 'Error loading model',
-          };
-          el.textContent = labels[status] ?? status;
+        if (
+          status === 'loading-model' ||
+          status === 'generating' ||
+          status === 'ready' ||
+          status === 'error'
+        ) {
+          this._setZenProgress(body, status);
         }
       });
+
+      const elapsedMs = performance.now() - startedAt;
+      if (elapsedMs < 900) {
+        await new Promise((resolve) => setTimeout(resolve, 900 - elapsedMs));
+      }
 
       this._zenExplanation = result.explanation;
       body.innerHTML = this._renderZenExplanation(result.explanation);

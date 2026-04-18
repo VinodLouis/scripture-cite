@@ -14,7 +14,11 @@ const BIBLE_DATA: ScriptureData = {
   meta: { source: 'bible', version: 'KJV', lang: 'en' },
   verses: {
     genesis: {
-      '1': { '1': 'In the beginning God created the heaven and the earth.' },
+      '1': {
+        '1': 'In the beginning God created the heaven and the earth.',
+        '2': 'And the earth was without form, and void.',
+        '3': 'And God said, Let there be light.',
+      },
     },
     john: { '3': { '16': 'For God so loved the world...' } },
   },
@@ -149,6 +153,24 @@ describe('ScriptureCiteElement', () => {
       expect(btn?.textContent).toContain('Zen Explain');
       expect(body?.hasAttribute('hidden')).toBe(true);
     });
+
+    it('renders inline zen controls when zen is enabled', async () => {
+      ScriptureConfigure({ zen: { enabled: true } });
+      const el = createElement({
+        source: 'bible',
+        book: 'genesis',
+        chapter: '1',
+        verse: '1',
+        mode: 'inline',
+        loading: 'eager',
+        zen: '',
+      });
+      await flush();
+
+      const shadow = getShadow(el);
+      const zen = shadow.querySelector('.sc-inline-zen');
+      expect(zen).toBeTruthy();
+    });
   });
 
   // ── Tooltip Mode ─────────────────────────────────────────────
@@ -256,6 +278,29 @@ describe('ScriptureCiteElement', () => {
       await flush();
 
       expect(el.hasAttribute('data-open')).toBe(true);
+    });
+
+    it('renders tooltip zen panel when zen is enabled', async () => {
+      ScriptureConfigure({ zen: { enabled: true } });
+
+      const el = createElement(
+        {
+          source: 'bible',
+          book: 'genesis',
+          chapter: '1',
+          verse: '1',
+          mode: 'tooltip',
+          loading: 'eager',
+          zen: '',
+        },
+        'Order check',
+      );
+      await flush();
+
+      const tooltip = getShadow(el).querySelector('.sc-tooltip');
+      expect(tooltip).toBeTruthy();
+
+      expect(tooltip?.querySelector('.sc-zen-panel')).toBeTruthy();
     });
 
     it('applies host theme vars to portal tooltip', async () => {

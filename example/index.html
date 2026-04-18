@@ -236,6 +236,36 @@
         margin: 0 0 0.75em 1.2em;
         padding: 0;
       }
+      .code-editor {
+        min-height: 220px;
+        border: 1px solid rgba(97, 73, 33, 0.16);
+        border-radius: 14px;
+        background: #0f1220;
+        overflow: hidden;
+      }
+      .code-editor-fallback {
+        width: 100%;
+        min-height: 220px;
+        box-sizing: border-box;
+        border: 0;
+        border-radius: 14px;
+        padding: 14px;
+        background: #0f1220;
+        color: #f4f7ff;
+        font: 400 0.88rem/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco,
+          Consolas, 'Liberation Mono', monospace;
+        resize: vertical;
+      }
+      .code-editor-fallback:focus {
+        outline: 2px solid #8b6914;
+        outline-offset: 2px;
+      }
+      .code-editor-note {
+        margin-top: 8px;
+        color: #6c5b46;
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
       .subgroup {
         margin-top: 8px;
         padding: 10px;
@@ -503,6 +533,46 @@
         </div>
 
         <div id="zenControls" style="display: none">
+          <div class="field">
+            <label>Zen provider</label>
+            <select id="zenProvider">
+              <option value="local" selected>local model</option>
+              <option value="custom">custom callback</option>
+            </select>
+          </div>
+
+          <div id="zenCustomControls" style="display: none">
+            <div class="field">
+              <label>Custom Zen provider function</label>
+              <div id="customZenProviderEditor" class="code-editor"></div>
+              <p class="code-editor-note">
+                This editor accepts a full function body. Return a string or a
+                promise of a string.
+              </p>
+              <textarea
+                id="customZenProviderFallback"
+                class="code-editor-fallback"
+                rows="10"
+                hidden
+              >
+async (request) => {
+  const response = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'qwen2.5-coder:3b',
+      prompt: request.userPrompt,
+      stream: false,
+    }),
+  });
+
+  const json = await response.json();
+  return String(json?.response ?? json?.text ?? '').trim();
+}</textarea
+              >
+            </div>
+          </div>
+
           <div class="field prompt-shell">
             <label>Zen system prompt</label>
             <div id="zenEditor" class="prompt-editor"></div>
